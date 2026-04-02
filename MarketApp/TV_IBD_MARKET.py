@@ -50,7 +50,6 @@ st.markdown("""
     .stDownloadButton > button { background-color: #238636; color: white; border: none; width: 100%; }
     .stDownloadButton > button:hover { background-color: #2EA043; border: none; }
     .diagnostic-box { background-color: #161B22; border: 1px solid #30363D; padding: 15px; border-radius: 5px; margin-bottom: 20px;}
-    .disclaimer { font-size: 0.8em; color: #8B949E; text-align: center; margin-top: 50px; padding-top: 20px; border-top: 1px solid #30363D;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -212,4 +211,145 @@ df_raw, group_df, debug_log = load_hybrid_data()
 with st.expander("🔍 מצב אבחון קבצים (X-Ray)"):
     if os.path.exists(DATA_DIR): st.write(f"קבצים בתיקייה: {os.listdir(DATA_DIR)}")
     for log in debug_log: st.write(log)
-    if st.button("📡 רענן נתונים ופתח מט
+    if st.button("📡 רענן נתונים ופתח מטמון"):
+        load_hybrid_data.clear()
+        st.rerun()
+
+if df_raw.empty:
+    st.error("⚠️ לא ניתן היה לטעון נתונים.")
+    st.stop()
+
+# --- CORE FILTERS ---
+st.markdown("### ⚙️ CORE PARAMETERS")
+c1, c2, c3, c4 = st.columns(4)
+with c1: min_rs = st.number_input("⚡ RS Rating", 1, 99, 85)
+with c2: min_v = st.number_input("💵 $ Vol (M)", 0.0, 500.0, 5.0)
+with c3: req_lc = st.toggle("> $1B Cap", False)
+with c4:
+    stgs = sorted([str(s) for s in df_raw['Weinstein_Stage'].unique() if s])
+    stg_f = st.multiselect("📊 Stage", stgs, default=["Stage 2 🚀 Adv"] if "Stage 2 🚀 Adv" in stgs else None)
+
+mask = (df_raw['RS Rating'] >= min_rs) & (df_raw['Dollar_Volume_M'] >= min_v)
+if req_lc: mask &= (df_raw['Market_Cap_B'] >= 1.0)
+df_filtered = df_raw[mask].copy()
+if stg_f: df_filtered = df_filtered[df_filtered['Weinstein_Stage'].isin(stg_f)]
+
+# --- ADVANCED FILTERS & COLUMNS ---
+with st.expander("🛠️ ADVANCED FILTERS & COLUMNS"):
+    adv1, adv2, adv3 = st.columns(3)
+    with adv1:
+        if 'Pattern_Badges' in df_filtered.columns:
+            all_b = sorted(list(set(df_filtered['Pattern_Badges'].str.split('  ').explode().dropna())))
+            b_filt = st.multiselect("LIVE Patterns", [x for x in all_b if x])
+            for b in b_filt: df_filtered = df_filtered[df_filtered['Pattern_Badges'].str.contains(b, na=False)]
+    with adv2:
+        m_comp = st.number_input("Min Comp", 1, 99, 1)
+        if m_comp > 1: df_filtered = df_filtered[df_filtered['Comp. Rating'] >= m_comp]
+    with adv3:
+        m_eps = st.number_input("Min EPS", 1, 99, 1)
+        if m_eps > 1: df_filtered = df_filtered[df_filtered['EPS Rating'] >= m_eps]
+
+    st.markdown("---")
+    ib1, ib2, ib3, ib4 = st.columns(4)
+    for col, widget in zip(['Ind Grp RS', 'SMR Rating', 'Acc/Dis Rating', 'Spon Rating'], [ib1, ib2, ib3, ib4]):
+        if col in df_filtered.columns:
+            opts = sorted([str(x) for x in df_filtered[col].dropna().unique() if str(x) != 'nan'])
+            sel = widget.multiselect(col, opts)
+            if sel: df_filtered = df_filtered[df_filtered[col].astype(str).isin(sel)]
+
+    st.markdown("---")
+    possible_cols = ['TV_Link', 'Price', 'RS Rating', 'Comp. Rating', 'EPS Rating', 'Acc/Dis Rating', 'SMR Rating', 
+                    'Spon Rating', 'Ind Grp RS', 'Rank_Improvement', 'Weinstein_Stage', 'Pattern_Badges', 'VDU_Alert', 'Earnings_Alert']
+    available_cols = [c for c in possible_cols if c in df_raw.columns]
+    default_cols = ['TV_Link', 'Price', 'RS Rating', 'Comp. Rating', 'Ind Grp RS', 'Rank_Improvement', 'Weinstein_Stage', 'Pattern_Badges']
+    selected_view = st.multiselect("👀 בחר עמודות להצגה:", available_cols, default=[c for c in default_cols if c in available_cols])
+
+# Action Score calculation
+df_filtered['Action_Score'] = (df_filtered['RS Rating'] / 10) + (pd.to_numeric(df_filtered.get('Kinetic_Slope', 0), errors='coerce').fillna(0) / 50).clip(upper=3)
+
+# --- ACTION GRID ---
+st.markdown(f"### 🎯 ACTION GRID ({len(df_filtered)} STOCKS)")
+display_final = selected_view.copy()
+if 'Action_Score' not in display_final: display_final.insert(0, 'Action_Score')
+
+strike_zone_df = df_filtered[display_final].sort_values('Action_Score', ascending=False)
+
+st.dataframe(strike_zone_df, use_container_width=True, hide_index=True, height=400,
+    column_config={
+        "TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
+        "RS Rating": st.column_config.ProgressColumn("RS", min_value=0, max_value=99),
+        "Price": st.column_config.NumberColumn("PRICE", format="$%.2f")
+    })
+
+# --- CHARTING ---
+st.markdown("---")
+st.markdown("### 📈 INTERACTIVE CHARTING")
+tks = sorted(df_filtered['Symbol'].dropna().unique())
+if tks:
+    sel_t = st.selectbox("🎯 בחר מניה:", tks)
+    td = yf.download(sel_t, period="1y", interval="1d", progress=False)
+    if not td.empty:
+        if isinstance(td.columns, pd.MultiIndex): td.columns = td.columns.get_level_values(0)
+        td['SMA21'], td['SMA50'], td['SMA200'] = td['Close'].rolling(21).mean(), td['Close'].rolling(50).mean(), td['Close'].rolling(200).mean()
+        disp = td.tail(130)
+        cands, vols, s21, s50, s200 = [], [], [], [], []
+        for d, r in disp.iterrows():
+            ts = d.strftime('%Y-%m-%d')
+            cands.append({"time": ts, "open": float(r['Open']), "high": float(r['High']), "low": float(r['Low']), "close": float(r['Close'])})
+            vols.append({"time": ts, "value": float(r['Volume']), "color": '#26a69a80' if r['Close'] >= r['Open'] else '#ef535080'})
+            if pd.notna(r['SMA21']): s21.append({"time": ts, "value": float(r['SMA21'])})
+            if pd.notna(r['SMA50']): s50.append({"time": ts, "value": float(r['SMA50'])})
+            if pd.notna(r['SMA200']): s200.append({"time": ts, "value": float(r['SMA200'])})
+        
+        opts = {
+            "height": 700,
+            "layout": {"textColor": '#D1D4DC', "background": {"type": 'solid', "color": '#0E1117'}},
+            "grid": {
+                "vertLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1},
+                "horzLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1}
+            },
+            "watermark": {"visible": True, "fontSize": 120, "text": sel_t, "color": 'rgba(255, 255, 255, 0.05)'},
+            # הנרות והממוצעים על הציר הימני (תופסים 80% עליונים)
+            "rightPriceScale": {"scaleMargins": {"top": 0.05, "bottom": 0.2}, "borderColor": '#2B2B43'},
+            # ציר שמאלי מוסתר (ייעודי לווליום - מוגבל ל-15% התחתונים בלבד!)
+            "leftPriceScale": {"visible": False, "scaleMargins": {"top": 0.85, "bottom": 0}},
+            "timeScale": {"borderColor": '#2B2B43'}
+        }
+        
+        c_left, c_main, c_right = st.columns([0.01, 0.98, 0.01])
+        with c_main:
+            renderLightweightCharts([{"chart": opts, "series": [
+                {"type": 'Candlestick', "data": cands, "options": {"upColor": '#26a69a', "downColor": '#ef5350', "borderVisible": False, "wickUpColor": '#26a69a', "wickDownColor": '#ef5350'}},
+                # שיוך הווליום ל-leftPriceScale כדי שישאר למטה, והסרת צבע קבוע כדי להשתמש באדום/ירוק מהמערך
+                {"type": 'Histogram', "data": vols, "options": {"priceFormat": {"type": 'volume'}, "priceScaleId": 'left'}},
+                {"type": 'Line', "data": s21, "options": {"color": "#1053e6", "lineWidth": 2, "title": 'SMA 21'}},
+                {"type": 'Line', "data": s50, "options": {"color": "#14b11c", "lineWidth": 2, "title": 'SMA 50'}},
+                {"type": 'Line', "data": s200, "options": {"color": '#d50000', "lineWidth": 2, "title": 'SMA 200'}}
+            ]}], 'chart')
+
+# --- MACRO ---
+st.markdown("---")
+st.markdown("### 🌊 MACRO: SECTOR VELOCITY")
+m1, m2 = st.columns(2)
+with m1:
+    if not group_df.empty:
+        st.caption("🏆 LEADERS: TOP 40 IBD GROUPS")
+        st.dataframe(group_df.sort_values('Rank this Wk').head(40), use_container_width=True, hide_index=True, height=350)
+with m2:
+    if not group_df.empty and 'Industry Group Name' in df_raw.columns:
+        top_j = group_df.sort_values('Rank_Improvement', ascending=False).head(20)
+        j_df = df_raw[df_raw['Industry Group Name'].isin(top_j['Industry Group Name'])]
+        st.caption("🚀 MOMENTUM: TOP STOCKS IN JUMPING GROUPS")
+        st.dataframe(j_df[['Industry Group Name', 'Rank_Improvement', 'TV_Link', 'RS Rating']].sort_values(['Rank_Improvement', 'RS Rating'], ascending=False), 
+                     use_container_width=True, hide_index=True, height=350,
+                     column_config={"TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
+                                   "RS Rating": st.column_config.ProgressColumn("RS", min_value=0, max_value=99)})
+
+# --- EXPORT ---
+def to_excel(df):
+    out = io.BytesIO()
+    with pd.ExcelWriter(out, engine='xlsxwriter') as w:
+        df.to_excel(w, index=False)
+    return out.getvalue()
+
+st.download_button("📥 הורד רשימה ל-Excel", to_excel(strike_zone_df), f"Market_Export_{datetime.now().strftime('%Y%m%d')}.xlsx")
