@@ -168,44 +168,64 @@ st.dataframe(strike_zone_df, use_container_width=True, hide_index=True, height=4
 st.markdown("---")
 st.markdown("### 📈 INTERACTIVE CHARTING")
 tks = sorted(df_filtered['Symbol'].dropna().unique())
+
 if tks:
     sel_t = st.selectbox("🎯 בחר מניה לעומק:", tks)
-    td = yf.download(sel_t, period="1y", interval="1d", progress=False)
-    if not td.empty:
-        if isinstance(td.columns, pd.MultiIndex): td.columns = td.columns.get_level_values(0)
-        td['SMA21'], td['SMA50'], td['SMA200'] = td['Close'].rolling(21).mean(), td['Close'].rolling(50).mean(), td['Close'].rolling(200).mean()
-        disp = td.tail(130)
-        cands, vols, s21, s50, s200 = [], [], [], [], []
-        for d, r in disp.iterrows():
-            ts = d.strftime('%Y-%m-%d')
-            cands.append({"time": ts, "open": float(r['Open']), "high": float(r['High']), "low": float(r['Low']), "close": float(r['Close'])})
-            vols.append({"time": ts, "value": float(r['Volume']), "color": '#26a69a80' if r['Close'] >= r['Open'] else '#ef535080'})
-            if pd.notna(r['SMA21']): s21.append({"time": ts, "value": float(r['SMA21'])})
-            if pd.notna(r['SMA50']): s50.append({"time": ts, "value": float(r['SMA50'])})
-            if pd.notna(r['SMA200']): s200.append({"time": ts, "value": float(r['SMA200'])})
-        
-        opts = {
-            "height": 700,
-            "layout": {"textColor": '#D1D4DC', "background": {"type": 'solid', "color": '#0E1117'}},
-            "grid": {
-                "vertLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1},
-                "horzLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1}
-            },
-            "watermark": {"visible": True, "fontSize": 120, "text": sel_t, "color": 'rgba(255, 255, 255, 0.05)'},
-            "rightPriceScale": {"scaleMargins": {"top": 0.05, "bottom": 0.2}, "borderColor": '#2B2B43'},
-            "leftPriceScale": {"visible": False, "scaleMargins": {"top": 0.85, "bottom": 0}},
-            "timeScale": {"borderColor": '#2B2B43'}
-        }
-        
-        c_left, c_main, c_right = st.columns([0.01, 0.98, 0.01])
-        with c_main:
-            renderLightweightCharts([{"chart": opts, "series": [
-                {"type": 'Candlestick', "data": cands, "options": {"upColor": '#26a69a', "downColor": '#ef5350', "borderVisible": False, "wickUpColor": '#26a69a', "wickDownColor": '#ef5350'}},
-                {"type": 'Histogram', "data": vols, "options": {"priceFormat": {"type": 'volume'}, "priceScaleId": 'left'}},
-                {"type": 'Line', "data": s21, "options": {"color": "#1053e6", "lineWidth": 2, "title": 'SMA 21'}},
-                {"type": 'Line', "data": s50, "options": {"color": "#14b11c", "lineWidth": 2, "title": 'SMA 50'}},
-                {"type": 'Line', "data": s200, "options": {"color": '#d50000', "lineWidth": 2, "title": 'SMA 200'}}
-            ]}], 'chart')
+    
+    with st.spinner(f"מושך נתוני היסטוריה עבור {sel_t}..."):
+        try:
+            td = yf.download(sel_t, period="1y", interval="1d", progress=False)
+            
+            if td.empty:
+                st.warning(f"⚠️ Yahoo Finance לא החזיר נתונים עבור {sel_t}. ייתכן שמדובר בחסימת רשת זמנית בשרתי Streamlit.")
+            else:
+                # סידור עמודות לגרסאות החדשות של yfinance
+                if isinstance(td.columns, pd.MultiIndex): 
+                    td.columns = td.columns.get_level_values(0)
+                
+                # חישוב ממוצעים וניקוי שורות ריקות שעשויות לרסק את הגרף
+                td['SMA21'] = td['Close'].rolling(21).mean()
+                td['SMA50'] = td['Close'].rolling(50).mean()
+                td['SMA200'] = td['Close'].rolling(200).mean()
+                disp = td.tail(130).dropna(subset=['Close']) 
+                
+                cands, vols, s21, s50, s200 = [], [], [], [], []
+                for d, r in disp.iterrows():
+                    ts = d.strftime('%Y-%m-%d')
+                    cands.append({"time": ts, "open": float(r['Open']), "high": float(r['High']), "low": float(r['Low']), "close": float(r['Close'])})
+                    vols.append({"time": ts, "value": float(r['Volume']), "color": '#26a69a80' if r['Close'] >= r['Open'] else '#ef535080'})
+                    if pd.notna(r['SMA21']): s21.append({"time": ts, "value": float(r['SMA21'])})
+                    if pd.notna(r['SMA50']): s50.append({"time": ts, "value": float(r['SMA50'])})
+                    if pd.notna(r['SMA200']): s200.append({"time": ts, "value": float(r['SMA200'])})
+                
+                opts = {
+                    "height": 700,
+                    "layout": {"textColor": '#D1D4DC', "background": {"type": 'solid', "color": '#0E1117'}},
+                    "grid": {
+                        "vertLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1},
+                        "horzLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1}
+                    },
+                    "watermark": {"visible": True, "fontSize": 120, "text": sel_t, "color": 'rgba(255, 255, 255, 0.05)'},
+                    "rightPriceScale": {"scaleMargins": {"top": 0.05, "bottom": 0.2}, "borderColor": '#2B2B43'},
+                    "leftPriceScale": {"visible": False, "scaleMargins": {"top": 0.85, "bottom": 0}},
+                    "timeScale": {"borderColor": '#2B2B43'}
+                }
+                
+                c_left, c_main, c_right = st.columns([0.01, 0.98, 0.01])
+                with c_main:
+                    # הוספתי מפתח ייחודי (key) בסוף כדי להבטיח שהגרף לא "יינעל" ויעלה מחדש
+                    renderLightweightCharts([{"chart": opts, "series": [
+                        {"type": 'Candlestick', "data": cands, "options": {"upColor": '#26a69a', "downColor": '#ef5350', "borderVisible": False, "wickUpColor": '#26a69a', "wickDownColor": '#ef5350'}},
+                        {"type": 'Histogram', "data": vols, "options": {"priceFormat": {"type": 'volume'}, "priceScaleId": 'left'}},
+                        {"type": 'Line', "data": s21, "options": {"color": "#1053e6", "lineWidth": 2, "title": 'SMA 21'}},
+                        {"type": 'Line', "data": s50, "options": {"color": "#14b11c", "lineWidth": 2, "title": 'SMA 50'}},
+                        {"type": 'Line', "data": s200, "options": {"color": '#d50000', "lineWidth": 2, "title": 'SMA 200'}}
+                    ]}], key=f'chart_{sel_t}')
+                    
+        except Exception as e:
+            st.error(f"שגיאה בהפקת הגרף: {e}")
+else:
+    st.info("אין מניות שעונות על תנאי הסינון. שחרר פילטרים כדי לראות גרף.")
 
 # --- MACRO ---
 st.markdown("---")
