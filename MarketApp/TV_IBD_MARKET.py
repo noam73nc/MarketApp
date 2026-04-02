@@ -41,7 +41,7 @@ st.set_page_config(
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; }
-    .block-container { padding-top: 1.5rem; padding-bottom: 1.5rem; direction: rtl; max-width: 95%; }
+    .block-container { padding-top: 1.5rem; padding-bottom: 1.5rem; direction: rtl; max-width: 98%; }
     h1, h2, h3 { color: #E6EDF3; font-family: 'Consolas', 'Courier New', monospace; text-transform: uppercase; letter-spacing: 1px; }
     h1 { border-bottom: 2px solid #238636; padding-bottom: 10px; }
     .stDataFrame { direction: ltr; }
@@ -49,7 +49,6 @@ st.markdown("""
     div[data-baseweb="select"] > div { background-color: #161B22; border: 1px solid #30363D; }
     .stDownloadButton > button { background-color: #238636; color: white; border: none; width: 100%; }
     .stDownloadButton > button:hover { background-color: #2EA043; border: none; }
-    .diagnostic-box { background-color: #161B22; border: 1px solid #30363D; padding: 15px; border-radius: 5px; margin-bottom: 20px;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -159,7 +158,6 @@ def load_hybrid_data():
         for c in ['Earnings_Alert', 'Kinetic_Slope', 'VDU_Alert']:
             if c not in df_raw.columns: df_raw[c] = ''
 
-        debug_log.append("✅ Data Merge Complete")
         return df_raw, group_df, debug_log
     except Exception as e:
         return pd.DataFrame(), pd.DataFrame(), [f"❌ Error: {e}"]
@@ -171,19 +169,6 @@ st.title("📟 HYBRID COMMAND CENTER :: TV + IBD")
 
 df_raw, group_df, debug_log = load_hybrid_data()
 
-# אבחון (רק אם יש בעיה)
-if df_raw.empty or group_df.empty:
-    with st.expander("🔍 Diagnostic Log (Something is missing)"):
-        st.write(f"Files in data/: {os.listdir(DATA_DIR) if os.path.exists(DATA_DIR) else 'Folder not found'}")
-        for log in debug_log: st.write(log)
-        if st.button("📡 Force Refresh Data"):
-            load_hybrid_data.clear()
-            st.rerun()
-
-if df_raw.empty:
-    st.error("Could not load market data. Check GitHub repository.")
-    st.stop()
-
 # --- CORE FILTERS ---
 st.markdown("### ⚙️ CORE PARAMETERS")
 c1, c2, c3, c4 = st.columns(4)
@@ -194,7 +179,6 @@ with c4:
     stgs = sorted([str(s) for s in df_raw['Weinstein_Stage'].unique() if s])
     stg_f = st.multiselect("📊 Stage", stgs, default=["Stage 2 🚀 Adv"] if "Stage 2 🚀 Adv" in stgs else None)
 
-# Apply Core Filters
 mask = (df_raw['RS Rating'] >= min_rs) & (df_raw['Dollar_Volume_M'] >= min_v)
 if req_lc: mask &= (df_raw['Market_Cap_B'] >= 1.0)
 df_filtered = df_raw[mask].copy()
@@ -224,23 +208,19 @@ with st.expander("🛠️ ADVANCED FILTERS & COLUMNS"):
             if sel: df_filtered = df_filtered[df_filtered[col].astype(str).isin(sel)]
 
     st.markdown("---")
-    # Column Selection - FIXED
     possible_cols = ['TV_Link', 'Price', 'RS Rating', 'Comp. Rating', 'EPS Rating', 'Acc/Dis Rating', 'SMR Rating', 
                     'Spon Rating', 'Ind Grp RS', 'Rank_Improvement', 'Weinstein_Stage', 'Pattern_Badges', 'VDU_Alert', 'Earnings_Alert']
     available_cols = [c for c in possible_cols if c in df_raw.columns]
     default_cols = ['TV_Link', 'Price', 'RS Rating', 'Comp. Rating', 'Ind Grp RS', 'Rank_Improvement', 'Weinstein_Stage', 'Pattern_Badges']
-    
     selected_view = st.multiselect("👀 בחר עמודות להצגה:", available_cols, default=[c for c in default_cols if c in available_cols])
 
-# Calculate Action Score
+# Action Score
 df_filtered['Action_Score'] = (df_filtered['RS Rating'] / 10) + (pd.to_numeric(df_filtered.get('Kinetic_Slope', 0), errors='coerce').fillna(0) / 50).clip(upper=3)
 
 # --- ACTION GRID ---
 st.markdown(f"### 🎯 ACTION GRID ({len(df_filtered)} STOCKS)")
-# וודא ש-Action Score תמיד מופיע גם אם לא נבחר ידנית
 display_final = selected_view.copy()
 if 'Action_Score' not in display_final: display_final.insert(0, 'Action_Score')
-
 strike_zone_df = df_filtered[display_final].sort_values('Action_Score', ascending=False)
 
 st.dataframe(strike_zone_df, use_container_width=True, hide_index=True, height=400,
@@ -270,16 +250,29 @@ if tks:
             if pd.notna(r['SMA50']): s50.append({"time": ts, "value": float(r['SMA50'])})
             if pd.notna(r['SMA200']): s200.append({"time": ts, "value": float(r['SMA200'])})
         
-        opts = {"width": 1400, "height": 800, "layout": {"textColor": 'white', "background": {"color": '#0E1117'}}, 
-                "watermark": {"visible": True, "fontSize": 140, "text": sel_t, "color": 'rgba(255,255,255,0.06)'},
-                "rightPriceScale": {"scaleMargins": {"top": 0.05, "bottom": 0.25}}, "leftPriceScale": {"visible": False, "scaleMargins": {"top": 0.8, "bottom": 0}}}
+        # הגדרות גרף משופרות
+        opts = {
+            "height": 700,
+            "layout": {"textColor": '#D1D4DC', "background": {"type": 'solid', "color": '#0E1117'}},
+            "grid": {
+                "vertLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1},
+                "horzLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1}
+            },
+            "watermark": {"visible": True, "fontSize": 120, "text": sel_t, "color": 'rgba(255, 255, 255, 0.05)'},
+            "rightPriceScale": {"scaleMargins": {"top": 0.1, "bottom": 0.2}, "borderColor": '#2B2B43'},
+            "timeScale": {"borderColor": '#2B2B43'}
+        }
         
-        renderLightweightCharts([{"chart": opts, "series": [
-            {"type": 'Candlestick', "data": cands}, {"type": 'Histogram', "data": vols, "options": {"priceScaleId": 'left'}},
-            {"type": 'Line', "data": s21, "options": {"color": "#1053e6", "title": 'SMA 21'}},
-            {"type": 'Line', "data": s50, "options": {"color": "#14b11c", "title": 'SMA 50'}},
-            {"type": 'Line', "data": s200, "options": {"color": '#d50000', "title": 'SMA 200'}}
-        ]}], 'chart')
+        # שימוש ב-columns כדי למנוע את החלק הריק מימין
+        c_left, c_main, c_right = st.columns([0.01, 0.98, 0.01])
+        with c_main:
+            renderLightweightCharts([{"chart": opts, "series": [
+                {"type": 'Candlestick', "data": cands, "options": {"upColor": '#26a69a', "downColor": '#ef5350', "borderVisible": False, "wickUpColor": '#26a69a', "wickDownColor": '#ef5350'}},
+                {"type": 'Histogram', "data": vols, "options": {"priceFormat": {"type": 'volume'}, "priceScaleId": 'left', "color": '#26a69a'}},
+                {"type": 'Line', "data": s21, "options": {"color": "#1053e6", "lineWidth": 2, "title": 'SMA 21'}},
+                {"type": 'Line', "data": s50, "options": {"color": "#14b11c", "lineWidth": 2, "title": 'SMA 50'}},
+                {"type": 'Line', "data": s200, "options": {"color": '#d50000', "lineWidth": 2, "title": 'SMA 200'}}
+            ]}], 'chart')
 
 # --- MACRO ---
 st.markdown("---")
