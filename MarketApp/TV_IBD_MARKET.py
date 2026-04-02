@@ -14,16 +14,6 @@ from tradingview_screener import Query, Column
 # ==========================================
 DATA_DIR = "data"
 
-def find_file_robust(directory, filename_target):
-    if not os.path.exists(directory):
-        return None
-    files = os.listdir(directory)
-    target = filename_target.lower().strip()
-    for f in files:
-        if f.lower().strip() == target:
-            return os.path.join(directory, f)
-    return None
-
 # ==========================================
 # ⚙️ הגדרות עמוד ותצורה
 # ==========================================
@@ -166,7 +156,6 @@ def load_hybrid_data():
                 group_df.columns = group_df.columns.str.strip()
                 debug_log.append(f"🔍 עמודות מקוריות בקובץ הדירוג: {list(group_df.columns)}")
                 
-                # מיפוי חכם לעמודות במקרה ששמן השתנה טיפה
                 rename_dict = {}
                 for col in group_df.columns:
                     cl = col.lower()
@@ -337,7 +326,9 @@ df_filtered['Action_Score'] = (df_filtered['RS Rating'] / 10) + (pd.to_numeric(d
 cols_show = [c for c in disp_cols if c in df_filtered.columns]
 if 'Action_Score' not in cols_show: cols_show.insert(3, 'Action_Score')
 
-st.dataframe(df_filtered[cols_show].sort_values('Action_Score', ascending=False), use_container_width=True, hide_index=True, height=400,
+strike_zone_df = df_filtered[cols_show].sort_values('Action_Score', ascending=False)
+
+st.dataframe(strike_zone_df, use_container_width=True, hide_index=True, height=400,
     column_config={
         "TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
         "Price": st.column_config.NumberColumn("PRICE", format="$%.2f"),
