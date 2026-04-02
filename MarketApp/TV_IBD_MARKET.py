@@ -301,7 +301,7 @@ if tks:
             if pd.notna(r['SMA50']): s50.append({"time": ts, "value": float(r['SMA50'])})
             if pd.notna(r['SMA200']): s200.append({"time": ts, "value": float(r['SMA200'])})
         
-        # הגדרות גרף משופרות (כהה, פסים מוחלשים, ונמתח)
+        # הגדרות גרף - פרופורציונלי לחלוטין (מצב כהה, ללא שטחים מתים, ווליום בתחתית)
         opts = {
             "height": 700,
             "layout": {"textColor": '#D1D4DC', "background": {"type": 'solid', "color": '#0E1117'}},
@@ -310,7 +310,7 @@ if tks:
                 "horzLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1}
             },
             "watermark": {"visible": True, "fontSize": 120, "text": sel_t, "color": 'rgba(255, 255, 255, 0.05)'},
-            "rightPriceScale": {"scaleMargins": {"top": 0.1, "bottom": 0.2}, "borderColor": '#2B2B43'},
+            "rightPriceScale": {"scaleMargins": {"top": 0.05, "bottom": 0.2}, "borderColor": '#2B2B43'},
             "timeScale": {"borderColor": '#2B2B43'}
         }
         
@@ -318,7 +318,8 @@ if tks:
         with c_main:
             renderLightweightCharts([{"chart": opts, "series": [
                 {"type": 'Candlestick', "data": cands, "options": {"upColor": '#26a69a', "downColor": '#ef5350', "borderVisible": False, "wickUpColor": '#26a69a', "wickDownColor": '#ef5350'}},
-                {"type": 'Histogram', "data": vols, "options": {"priceFormat": {"type": 'volume'}, "priceScaleId": 'left', "color": '#26a69a'}},
+                # הווליום מוגדר כ-Overlay ומוגבל ל-15% התחתונים בלבד ("top": 0.85)
+                {"type": 'Histogram', "data": vols, "options": {"priceFormat": {"type": 'volume'}, "priceScaleId": '', "scaleMargins": {"top": 0.85, "bottom": 0}}},
                 {"type": 'Line', "data": s21, "options": {"color": "#1053e6", "lineWidth": 2, "title": 'SMA 21'}},
                 {"type": 'Line', "data": s50, "options": {"color": "#14b11c", "lineWidth": 2, "title": 'SMA 50'}},
                 {"type": 'Line', "data": s200, "options": {"color": '#d50000', "lineWidth": 2, "title": 'SMA 200'}}
