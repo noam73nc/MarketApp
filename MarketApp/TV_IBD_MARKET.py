@@ -35,7 +35,7 @@ st.set_page_config(
     page_title="Terminal :: Hybrid Market",
     page_icon="📟",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded" # שונה כדי שהדיסקליימר יופיע ברור
 )
 
 st.markdown("""
@@ -52,6 +52,19 @@ st.markdown("""
     .diagnostic-box { background-color: #161B22; border: 1px solid #30363D; padding: 15px; border-radius: 5px; margin-bottom: 20px;}
     </style>
 """, unsafe_allow_html=True)
+
+# ==========================================
+# ⚠️ דיסקליימר (מוצג בסיידבר)
+# ==========================================
+st.sidebar.warning("""
+**⚠️ דיסקליימר - אזהרת סיכון**
+
+הנתונים המוצגים במערכת זו נמשכים ממקורות צד-שלישי ומוצגים למטרות מידע, מחקר ולימוד בלבד. 
+
+**אין לראות במידע זה בשום צורה כהמלצה, ייעוץ השקעות, תחליף לייעוץ מקצועי, או הצעה לקנייה/מכירה של ניירות ערך.**
+
+המשתמש נושא באחריות המלאה והבלעדית לכל פעולה שיבצע על בסיס הנתונים באפליקציה. המסחר בשוק ההון כרוך בסיכון משמעותי להפסד ההון המושקע.
+""")
 
 # ==========================================
 # 📡 טעינת נתונים משולבת (TV + IBD + Group Ranking)
@@ -309,9 +322,7 @@ if tks:
                 "horzLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1}
             },
             "watermark": {"visible": True, "fontSize": 120, "text": sel_t, "color": 'rgba(255, 255, 255, 0.05)'},
-            # הנרות והממוצעים על הציר הימני (תופסים 80% עליונים)
             "rightPriceScale": {"scaleMargins": {"top": 0.05, "bottom": 0.2}, "borderColor": '#2B2B43'},
-            # ציר שמאלי מוסתר (ייעודי לווליום - מוגבל ל-15% התחתונים בלבד!)
             "leftPriceScale": {"visible": False, "scaleMargins": {"top": 0.85, "bottom": 0}},
             "timeScale": {"borderColor": '#2B2B43'}
         }
@@ -320,7 +331,6 @@ if tks:
         with c_main:
             renderLightweightCharts([{"chart": opts, "series": [
                 {"type": 'Candlestick', "data": cands, "options": {"upColor": '#26a69a', "downColor": '#ef5350', "borderVisible": False, "wickUpColor": '#26a69a', "wickDownColor": '#ef5350'}},
-                # שיוך הווליום ל-leftPriceScale כדי שישאר למטה, והסרת צבע קבוע כדי להשתמש באדום/ירוק מהמערך
                 {"type": 'Histogram', "data": vols, "options": {"priceFormat": {"type": 'volume'}, "priceScaleId": 'left'}},
                 {"type": 'Line', "data": s21, "options": {"color": "#1053e6", "lineWidth": 2, "title": 'SMA 21'}},
                 {"type": 'Line', "data": s50, "options": {"color": "#14b11c", "lineWidth": 2, "title": 'SMA 50'}},
@@ -348,8 +358,17 @@ with m2:
 # --- EXPORT ---
 def to_excel(df):
     out = io.BytesIO()
+    export_df = df.copy()
+    
+    # המרת הקישור הגולמי לנוסחת אקסל הכוללת את שם הטיקר וההייפרלינק המובנה
+    if 'TV_Link' in export_df.columns:
+        # חילוץ הטיקר מתוך כתובת ה-URL ליצירת התצוגה הנקייה באקסל
+        symbols = export_df['TV_Link'].str.extract(r'symbol=(.*)')[0]
+        # בניית נוסחת HYPERLINK של אקסל
+        export_df['TV_Link'] = '=HYPERLINK("' + export_df['TV_Link'] + '", "' + symbols + '")'
+        
     with pd.ExcelWriter(out, engine='xlsxwriter') as w:
-        df.to_excel(w, index=False)
+        export_df.to_excel(w, index=False)
     return out.getvalue()
 
 st.download_button("📥 הורד רשימה ל-Excel", to_excel(strike_zone_df), f"Market_Export_{datetime.now().strftime('%Y%m%d')}.xlsx")
