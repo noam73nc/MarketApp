@@ -1,0 +1,8 @@
+streamlit
+pandas
+numpy
+yfinance
+streamlit-lightweight-charts
+tradingview-screener
+openpyxl
+xlsxwriter
