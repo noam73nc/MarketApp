@@ -446,7 +446,7 @@ if not df_raw.empty:
                             if pd.notna(row['SMA200']): sma200_data.append({"time": time_str, "value": float(row['SMA200'])})
 
                         chartOptions = {
-                            "width": 1400, "height": 800,
+                            "width": 1200, "height": 700,
                             "layout": { "textColor": 'white', "background": { "type": 'solid', "color": '#0E1117' } },
                             "watermark": { "visible": True, "fontSize": 140, "horzAlign": 'center', "vertAlign": 'center', "color": 'rgba(255, 255, 255, 0.06)', "text": selected_ticker },
                             "rightPriceScale": { "scaleMargins": { "top": 0.05, "bottom": 0.25 }, "borderColor": '#30363D' },
