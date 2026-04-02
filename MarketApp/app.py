@@ -81,8 +81,12 @@ def load_local_data():
         try:
             df_raw = pd.read_pickle(market_path)
             group_df = pd.read_pickle(group_path)
-            # שמירת זמן העדכון האחרון של הקובץ כדי להציג למשתמש
-            last_mod = datetime.fromtimestamp(os.path.getmtime(market_path)).strftime('%H:%M:%S')
+            
+            # --- התיקון לשעון ישראל ---
+            # קורא את הזמן (Epoch), הופך ל-UTC, ואז ממיר לשעון ירושלים
+            timestamp = os.path.getmtime(market_path)
+            last_mod = pd.to_datetime(timestamp, unit='s', utc=True).tz_convert('Asia/Jerusalem').strftime('%H:%M:%S')
+            
             return df_raw, group_df, last_mod
         except Exception as e:
             st.error(f"שגיאה בקריאת הנתונים: {e}")
