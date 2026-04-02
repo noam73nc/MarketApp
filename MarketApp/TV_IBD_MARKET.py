@@ -83,7 +83,7 @@ def load_hybrid_data():
         df_raw['Market_Cap_B'] = pd.to_numeric(df_raw['Market Cap'], errors='coerce') / 1_000_000_000.0
         df_raw['Dollar_Volume_M'] = (df_raw['Price'] * df_raw['TV_AvgVol10']) / 1_000_000.0
 
-        # 2. Live Pattern Engine (Restored FULL Logic)
+        # 2. Live Pattern Engine
         df_raw['Rel_Volume'] = df_raw['TV_Volume'] / df_raw['TV_AvgVol10']
         df_raw['Spread'] = df_raw['high'] - df_raw['low']
         df_raw['Close_Pos'] = np.where(df_raw['Spread'] > 0, (df_raw['Price'] - df_raw['low']) / df_raw['Spread'], 0.5)
@@ -301,7 +301,6 @@ if tks:
             if pd.notna(r['SMA50']): s50.append({"time": ts, "value": float(r['SMA50'])})
             if pd.notna(r['SMA200']): s200.append({"time": ts, "value": float(r['SMA200'])})
         
-        # הגדרות גרף - פרופורציונלי לחלוטין (מצב כהה, ללא שטחים מתים, ווליום בתחתית)
         opts = {
             "height": 700,
             "layout": {"textColor": '#D1D4DC', "background": {"type": 'solid', "color": '#0E1117'}},
@@ -310,7 +309,10 @@ if tks:
                 "horzLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1}
             },
             "watermark": {"visible": True, "fontSize": 120, "text": sel_t, "color": 'rgba(255, 255, 255, 0.05)'},
+            # הנרות והממוצעים על הציר הימני (תופסים 80% עליונים)
             "rightPriceScale": {"scaleMargins": {"top": 0.05, "bottom": 0.2}, "borderColor": '#2B2B43'},
+            # ציר שמאלי מוסתר (ייעודי לווליום - מוגבל ל-15% התחתונים בלבד!)
+            "leftPriceScale": {"visible": False, "scaleMargins": {"top": 0.85, "bottom": 0}},
             "timeScale": {"borderColor": '#2B2B43'}
         }
         
@@ -318,8 +320,8 @@ if tks:
         with c_main:
             renderLightweightCharts([{"chart": opts, "series": [
                 {"type": 'Candlestick', "data": cands, "options": {"upColor": '#26a69a', "downColor": '#ef5350', "borderVisible": False, "wickUpColor": '#26a69a', "wickDownColor": '#ef5350'}},
-                # הווליום מוגדר כ-Overlay ומוגבל ל-15% התחתונים בלבד ("top": 0.85)
-                {"type": 'Histogram', "data": vols, "options": {"priceFormat": {"type": 'volume'}, "priceScaleId": '', "scaleMargins": {"top": 0.85, "bottom": 0}}},
+                # שיוך הווליום ל-leftPriceScale כדי שישאר למטה, והסרת צבע קבוע כדי להשתמש באדום/ירוק מהמערך
+                {"type": 'Histogram', "data": vols, "options": {"priceFormat": {"type": 'volume'}, "priceScaleId": 'left'}},
                 {"type": 'Line', "data": s21, "options": {"color": "#1053e6", "lineWidth": 2, "title": 'SMA 21'}},
                 {"type": 'Line', "data": s50, "options": {"color": "#14b11c", "lineWidth": 2, "title": 'SMA 50'}},
                 {"type": 'Line', "data": s200, "options": {"color": '#d50000', "lineWidth": 2, "title": 'SMA 200'}}
