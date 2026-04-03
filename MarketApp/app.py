@@ -24,35 +24,80 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-    .stApp { background-color: #0d1117; color: #c9d1d9; }
-    .block-container { padding-top: 1rem; padding-bottom: 1.5rem; direction: rtl; max-width: 98%; }
-    h1, h2, h3 { color: #E6EDF3; font-family: 'Consolas', 'Courier New', monospace; text-transform: uppercase; letter-spacing: 1px; }
-    h1 { border-bottom: 2px solid #238636; padding-bottom: 10px; margin-bottom: 30px; }
-    .stDataFrame { direction: ltr; }
-    div[data-baseweb="input"] { background-color: #161B22; border: 1px solid #30363D; border-radius: 4px; }
-    div[data-baseweb="select"] > div { background-color: #161B22; border: 1px solid #30363D; }
-    .stDownloadButton > button { background-color: #21262d; border: 1px solid #30363d; color: #c9d1d9; width: 100%; transition: 0.2s; }
-    .stDownloadButton > button:hover { background-color: #30363d; border: 1px solid #8b949e; }
-    
-    div[data-testid="stSidebar"] button[kind="primary"] {
-        background-color: #238636 !important;
-        color: white !important;
-        border: 1px solid rgba(240, 246, 252, 0.1) !important;
-        font-weight: bold;
-        padding: 0.75rem !important;
-        font-size: 16px;
-        width: 100%;
-        border-radius: 6px;
-        box-shadow: 0 0 15px rgba(35, 134, 54, 0.2);
-        transition: all 0.2s ease-in-out;
+    /* 1. יבוא פונט טרמינל עתידני מ-Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
+
+    /* 2. הגדרות מסך ראשי - חלל עמוק */
+    .stApp { 
+        background: radial-gradient(circle at 50% 0%, #152238 0%, #0B0F19 100%);
+        color: #8AB4F8; 
+        font-family: 'Rajdhani', sans-serif;
     }
-    div[data-testid="stSidebar"] button[kind="primary"]:hover {
-        background-color: #2EA043 !important;
-        box-shadow: 0 0 20px rgba(46, 160, 67, 0.6);
-        transform: translateY(-1px);
+    .block-container { padding-top: 1.5rem; padding-bottom: 1.5rem; direction: rtl; max-width: 98%; }
+
+    /* 3. כותרות - ציאן קרח מואר */
+    h1, h2, h3, h4 { 
+        color: #00E5FF !important; 
+        text-transform: uppercase; 
+        letter-spacing: 2px; 
+        font-weight: 600;
+        text-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+    }
+    h1 { border-bottom: 1px solid rgba(0, 229, 255, 0.4); padding-bottom: 15px; }
+
+    /* 4. סיידבר (תפריט צד) - אפקט לוח זכוכית */
+    [data-testid="stSidebar"] {
+        background-color: rgba(11, 15, 25, 0.6) !important;
+        border-left: 1px solid rgba(0, 229, 255, 0.1);
+        backdrop-filter: blur(12px);
+    }
+
+    /* 5. כפתורים (Space Switches) - כפתור הרענון והייצוא */
+    .stButton>button {
+        background-color: rgba(0, 229, 255, 0.05) !important;
+        border: 1px solid #00E5FF !important;
+        color: #00E5FF !important;
+        border-radius: 4px !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
+        width: 100%;
+    }
+    .stButton>button:hover {
+        background-color: #00E5FF !important;
+        color: #0B0F19 !important;
+        box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
+        transform: translateY(-2px);
+    }
+
+    /* 6. תיבות טקסט ובחירה (Dropdowns) */
+    .stSelectbox div[data-baseweb="select"] > div, 
+    .stMultiSelect div[data-baseweb="select"] > div {
+        background-color: rgba(16, 25, 43, 0.8) !important;
+        border: 1px solid #4DD0E1 !important;
+        color: #00E5FF !important;
+        border-radius: 4px;
+    }
+
+    /* 7. טבלאות הנתונים (DataFrames) */
+    [data-testid="stDataFrame"] {
+        border: 1px solid rgba(0, 229, 255, 0.2);
+        border-radius: 6px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    
+    /* 8. התראות ואזהרות (דברים שצריכים לבלוט) - סגול חלל (Magenta) */
+    .stWarning, .stAlert, .stInfo {
+        background: rgba(255, 0, 255, 0.05) !important;
+        border: 1px solid #FF00FF !important;
+        color: #E040FB !important;
+        border-radius: 6px;
+        backdrop-filter: blur(4px);
     }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 # ==========================================
 # ⚠️ דיסקליימר וכפתור רענון בסיידבר
@@ -205,7 +250,7 @@ if tks:
                 
                 opts = {
                     "height": 700,
-                    "layout": {"textColor": '#D1D4DC', "background": {"type": 'solid', "color": '#0E1117'}},
+                    "layout": {"textColor": '#D1D4DC', "background": {"type": 'solid', "color": '#0B0F19'}},
                     "grid": {
                         "vertLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1},
                         "horzLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1}
