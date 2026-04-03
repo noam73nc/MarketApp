@@ -220,34 +220,56 @@ st.markdown("### 📈 INTERACTIVE CHARTING")
 tks = sorted(df_filtered['Symbol'].dropna().unique())
 
 if tks:
-    sel_t = st.selectbox("🎯 בחר מניה לעומק:", tks)
-    
+    # --- יצירת סרגל הכלים שלנו ב-Streamlit ---
+    c_top1, c_top2, c_top3, c_top4 = st.columns([2, 1.5, 1.5, 1.5])
+    with c_top1:
+        sel_t = st.selectbox("🎯 בחר מניה:", tks)
+    with c_top2:
+        timeframe = st.selectbox("⏳ טווח זמן:", ["יומי (1D)", "שבועי (1W)"])
+    with c_top3:
+        chart_type = st.selectbox("📊 תצוגה:", ["נרות יפניים", "קו חלק (Line)"])
+    with c_top4:
+        history = st.selectbox("📅 היסטוריה:", ["שנתיים (2Y)", "5 שנים (5Y)", "מקסימום (Max)"])
+
+    # תרגום הבחירות לפרמטרים של Yahoo Finance
+    interval_map = {"יומי (1D)": "1d", "שבועי (1W)": "1wk"}
+    period_map = {"שנתיים (2Y)": "2y", "5 שנים (5Y)": "5y", "מקסימום (Max)": "max"}
+
     with st.spinner(f"מושך נתוני היסטוריה עבור {sel_t}..."):
         try:
-            td = yf.download(sel_t, period="1y", interval="1d", progress=False)
+            # משיכת הנתונים עם הטווח והזמן שנבחרו דינמית בסרגל
+            td = yf.download(sel_t, period=period_map[history], interval=interval_map[timeframe], progress=False)
             
             if td.empty:
-                st.warning(f"⚠️ Yahoo Finance לא החזיר נתונים עבור {sel_t}. ייתכן שמדובר בחסימת רשת זמנית בשרתי Streamlit.")
+                st.warning(f"⚠️ Yahoo Finance לא החזיר נתונים עבור {sel_t}. ייתכן שמדובר בחסימת רשת.")
             else:
-                # סידור עמודות לגרסאות החדשות של yfinance
                 if isinstance(td.columns, pd.MultiIndex): 
                     td.columns = td.columns.get_level_values(0)
                 
-                # חישוב ממוצעים וניקוי שורות ריקות שעשויות לרסק את הגרף
+                # חישוב ממוצעים نעים
                 td['SMA21'] = td['Close'].rolling(21).mean()
                 td['SMA50'] = td['Close'].rolling(50).mean()
                 td['SMA200'] = td['Close'].rolling(200).mean()
-                disp = td.tail(130).dropna(subset=['Close']) 
                 
-                cands, vols, s21, s50, s200 = [], [], [], [], []
+                # הסרנו את ההגבלה! מציג כעת את כל ההיסטוריה שנבחרה
+                disp = td.dropna(subset=['Close']) 
+                
+                main_data, vols, s21, s50, s200 = [], [], [], [], []
                 for d, r in disp.iterrows():
                     ts = d.strftime('%Y-%m-%d')
-                    cands.append({"time": ts, "open": float(r['Open']), "high": float(r['High']), "low": float(r['Low']), "close": float(r['Close'])})
+                    
+                    # בניית הנתונים לפי סוג הגרף שנבחר
+                    if chart_type == "נרות יפניים":
+                        main_data.append({"time": ts, "open": float(r['Open']), "high": float(r['High']), "low": float(r['Low']), "close": float(r['Close'])})
+                    else: # גרף קווי
+                        main_data.append({"time": ts, "value": float(r['Close'])})
+                        
                     vols.append({"time": ts, "value": float(r['Volume']), "color": '#26a69a80' if r['Close'] >= r['Open'] else '#ef535080'})
                     if pd.notna(r['SMA21']): s21.append({"time": ts, "value": float(r['SMA21'])})
                     if pd.notna(r['SMA50']): s50.append({"time": ts, "value": float(r['SMA50'])})
                     if pd.notna(r['SMA200']): s200.append({"time": ts, "value": float(r['SMA200'])})
                 
+                # עיצוב הגרף (מותאם אישית לאווירת Space Command)
                 opts = {
                     "height": 700,
                     "layout": {"textColor": '#D1D4DC', "background": {"type": 'solid', "color": '#0B0F19'}},
@@ -255,22 +277,26 @@ if tks:
                         "vertLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1},
                         "horzLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1}
                     },
-                    "watermark": {"visible": True, "fontSize": 120, "text": sel_t, "color": 'rgba(255, 255, 255, 0.05)'},
+                    "watermark": {"visible": True, "fontSize": 120, "text": f"{sel_t} | {timeframe.split(' ')[0]}", "color": 'rgba(255, 255, 255, 0.03)'},
                     "rightPriceScale": {"scaleMargins": {"top": 0.05, "bottom": 0.2}, "borderColor": '#2B2B43'},
                     "leftPriceScale": {"visible": False, "scaleMargins": {"top": 0.85, "bottom": 0}},
                     "timeScale": {"borderColor": '#2B2B43'}
                 }
                 
+                # הגדרות תצוגה דינמיות לסדרה הראשית
+                series_type = 'Candlestick' if chart_type == "נרות יפניים" else 'Line'
+                series_opts = {"upColor": '#26a69a', "downColor": '#ef5350', "borderVisible": False, "wickUpColor": '#26a69a', "wickDownColor": '#ef5350'} if chart_type == "נרות יפניים" else {"color": '#00E5FF', "lineWidth": 3}
+                
                 c_left, c_main, c_right = st.columns([0.01, 0.98, 0.01])
                 with c_main:
-                    # הוספתי מפתח ייחודי (key) בסוף כדי להבטיח שהגרף לא "יינעל" ויעלה מחדש
+                    # מפתח ייחודי קריטי כדי שהגרף יתרנדר מחדש כשמשנים טווח זמן
                     renderLightweightCharts([{"chart": opts, "series": [
-                        {"type": 'Candlestick', "data": cands, "options": {"upColor": '#26a69a', "downColor": '#ef5350', "borderVisible": False, "wickUpColor": '#26a69a', "wickDownColor": '#ef5350'}},
+                        {"type": series_type, "data": main_data, "options": series_opts},
                         {"type": 'Histogram', "data": vols, "options": {"priceFormat": {"type": 'volume'}, "priceScaleId": 'left'}},
-                        {"type": 'Line', "data": s21, "options": {"color": "#1053e6", "lineWidth": 2, "title": 'SMA 21'}},
-                        {"type": 'Line', "data": s50, "options": {"color": "#14b11c", "lineWidth": 2, "title": 'SMA 50'}},
-                        {"type": 'Line', "data": s200, "options": {"color": '#d50000', "lineWidth": 2, "title": 'SMA 200'}}
-                    ]}], key=f'chart_{sel_t}')
+                        {"type": 'Line', "data": s21, "options": {"color": "#1053e6", "lineWidth": 2, "title": 'MA 21'}},
+                        {"type": 'Line', "data": s50, "options": {"color": "#14b11c", "lineWidth": 2, "title": 'MA 50'}},
+                        {"type": 'Line', "data": s200, "options": {"color": '#FF00FF', "lineWidth": 2, "title": 'MA 200'}}
+                    ]}], key=f'chart_{sel_t}_{history}_{timeframe}_{chart_type}')
                     
         except Exception as e:
             st.error(f"שגיאה בהפקת הגרף: {e}")
