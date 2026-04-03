@@ -164,7 +164,7 @@ strike_zone_df = df_filtered[display_final].sort_values('Action_Score', ascendin
 st.dataframe(strike_zone_df, use_container_width=True, hide_index=True, height=400,
     column_config={
         "TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
-        "RS Rating": st.column_config.ProgressColumn("RS", min_value=0, max_value=99),
+        "RS Rating": st.column_config.ProgressColumn("RS", format="%d", min_value=0, max_value=99),
         "Price": st.column_config.NumberColumn("PRICE", format="$%.2f"),
         "Earnings_Date": st.column_config.TextColumn("דוחות 📅")
     })
@@ -254,7 +254,7 @@ with m2:
         st.dataframe(j_df[['Industry Group Name', 'Rank_Improvement', 'TV_Link', 'RS Rating']].sort_values(['Rank_Improvement', 'RS Rating'], ascending=False), 
                      use_container_width=True, hide_index=True, height=350,
                      column_config={"TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
-                                   "RS Rating": st.column_config.ProgressColumn("RS", min_value=0, max_value=99)})
+                                   "RS Rating": st.column_config.ProgressColumn("RS", format="%d", min_value=0, max_value=99)})
 
 # --- EXPORT ---
 def to_excel(df):
