@@ -165,7 +165,7 @@ st.dataframe(strike_zone_df, use_container_width=True, hide_index=True, height=4
     column_config={
         "TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
         "RS Rating": st.column_config.ProgressColumn("RS", min_value=0, max_value=99),
-        "Price": st.column_config.NumberColumn("PRICE", format="$%.2f")
+        "Price": st.column_config.NumberColumn("PRICE", format="$%.2f"),
         "Earnings_Alert": st.column_config.TextColumn("דוחות 📅")
     })
 
