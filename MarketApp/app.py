@@ -148,7 +148,7 @@ with st.expander("🛠️ ADVANCED FILTERS & COLUMNS"):
     possible_cols = ['TV_Link', 'Price', 'RS Rating', 'Comp. Rating', 'EPS Rating', 'Acc/Dis Rating', 'SMR Rating', 
                     'Spon Rating', 'Ind Grp RS', 'Rank_Improvement', 'Weinstein_Stage', 'Pattern_Badges', 'VDU_Alert', 'Earnings_Alert']
     available_cols = [c for c in possible_cols if c in df_raw.columns]
-    default_cols = ['TV_Link', 'Price', 'RS Rating', 'Comp. Rating', 'Ind Grp RS', 'Rank_Improvement', 'Weinstein_Stage', 'Pattern_Badges']
+    default_cols = ['TV_Link', 'Price', 'RS Rating', 'Comp. Rating', 'Ind Grp RS', 'Rank_Improvement', 'Weinstein_Stage', 'Pattern_Badges', 'Earnings_Alert']
     selected_view = st.multiselect("👀 בחר עמודות להצגה:", available_cols, default=[c for c in default_cols if c in available_cols])
 
 # Action Score calculation
@@ -166,6 +166,7 @@ st.dataframe(strike_zone_df, use_container_width=True, hide_index=True, height=4
         "TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
         "RS Rating": st.column_config.ProgressColumn("RS", min_value=0, max_value=99),
         "Price": st.column_config.NumberColumn("PRICE", format="$%.2f")
+        "Earnings_Alert": st.column_config.TextColumn("דוחות 📅")
     })
 
 # --- CHARTING ---
