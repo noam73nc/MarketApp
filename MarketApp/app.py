@@ -295,7 +295,7 @@ if tks:
                         {"type": 'Histogram', "data": vols, "options": {"priceFormat": {"type": 'volume'}, "priceScaleId": 'left'}},
                         {"type": 'Line', "data": s21, "options": {"color": "#1053e6", "lineWidth": 2, "title": 'MA 21'}},
                         {"type": 'Line', "data": s50, "options": {"color": "#14b11c", "lineWidth": 2, "title": 'MA 50'}},
-                        {"type": 'Line', "data": s200, "options": {"color": '#FF00FF', "lineWidth": 2, "title": 'MA 200'}}
+                        {"type": 'Line', "data": s200, "options": {"color": '#FF0000', "lineWidth": 2, "title": 'MA 200'}}
                     ]}], key=f'chart_{sel_t}_{history}_{timeframe}_{chart_type}')
                     
         except Exception as e:
