@@ -206,7 +206,7 @@ if 'Action_Score' not in display_final: display_final.insert(0, 'Action_Score')
 
 strike_zone_df = df_filtered[display_final].sort_values('Action_Score', ascending=False)
 
-st.dataframe(strike_zone_df, use_container_width=True, hide_index=True, height=400,
+st.dataframe(strike_zone_df, use_container_width=True, hide_index=True, height=900,
     column_config={
         "TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
         "RS Rating": st.column_config.ProgressColumn("RS", format="%d", min_value=0, max_value=99),
