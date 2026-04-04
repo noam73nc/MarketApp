@@ -315,7 +315,7 @@ with m1:
         st.caption("🏆 LEADERS: TOP 40 IBD GROUPS")
         # הסינון החדש: מסנן החוצה את ה-0 (המדדים) ולוקח רק דירוגים מ-1 ומעלה
         leaders_df = group_df[group_df['Rank this Wk'] > 0].sort_values('Rank this Wk').head(40)
-        st.dataframe(leaders_df, use_container_width=True, hide_index=True, height=350)
+        st.dataframe(leaders_df, use_container_width=True, hide_index=True, height=500)
     else:
         st.warning("⚠️ טבלת Macro מוסתרת כי הקובץ 'Group Ranking.csv' לא נמצא בתיקיית הנתונים בגיטהאב.")
 
@@ -325,7 +325,7 @@ with m2:
         j_df = df_raw[df_raw['Industry Group Name'].isin(top_j['Industry Group Name'])]
         st.caption("🚀 MOMENTUM: TOP STOCKS IN JUMPING GROUPS")
         st.dataframe(j_df[['Industry Group Name', 'Rank_Improvement', 'TV_Link', 'RS Rating']].sort_values(['Rank_Improvement', 'RS Rating'], ascending=False), 
-                     use_container_width=True, hide_index=True, height=350,
+                     use_container_width=True, hide_index=True, height=500,
                      column_config={"TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
                                    "RS Rating": st.column_config.ProgressColumn("RS", format="%d", min_value=0, max_value=99)})
 
