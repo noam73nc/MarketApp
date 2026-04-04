@@ -267,13 +267,13 @@ if tks:
                     if pd.notna(r['SMA200']): s200.append({"time": ts, "value": float(r['SMA200'])})
                 
                 opts = {
-                    "height": 700,
+                    "height": 500,
                     "layout": {"textColor": '#D1D4DC', "background": {"type": 'solid', "color": '#0B0F19'}},
                     "grid": {
                         "vertLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1},
                         "horzLines": {"color": 'rgba(42, 46, 57, 0.5)', "style": 1}
                     },
-                    "watermark": {"visible": True, "fontSize": 120, "text": f"{sel_t} | {timeframe.split(' ')[0]}", "color": 'rgba(255, 255, 255, 0.03)'},
+                    "watermark": {"visible": True, "fontSize": 100, "text": f"{sel_t} | {timeframe.split(' ')[0]}", "color": 'rgba(255, 255, 255, 0.03)'},
                     "rightPriceScale": {"scaleMargins": {"top": 0.05, "bottom": 0.2}, "borderColor": '#2B2B43'},
                     "leftPriceScale": {"visible": False, "scaleMargins": {"top": 0.85, "bottom": 0}},
                     "timeScale": {"borderColor": '#2B2B43'}
