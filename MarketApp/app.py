@@ -198,7 +198,7 @@ with st.expander("🛠️ ADVANCED FILTERS & COLUMNS"):
     
     available_cols = [c for c in possible_cols if c in df_filtered.columns]
 
-    selected_view = st.multiselect("👀 בחר עמודות להצגה:", available_cols, default=[c for c in default_cols if c in available_cols])
+    
 
 # Action Score calculation
 df_filtered['Action_Score'] = (df_filtered['RS Rating'] / 10) + (pd.to_numeric(df_filtered.get('Kinetic_Slope', 0), errors='coerce').fillna(0) / 50).clip(upper=3)
