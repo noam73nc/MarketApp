@@ -164,13 +164,11 @@ def update_market_data():
         
         # RS Backfill - מתוקן וחסין קריסות
         if 'Perf.Y' in df_raw.columns:
-            # אם העמודה לא קיימת בכלל (כי קובץ IBD חסר), ניצור אותה ריקה
             if 'RS Rating' not in df_raw.columns:
                 df_raw['RS Rating'] = np.nan
-                
-            # כעת נמלא את החסר (או את הכל אם היא הייתה ריקה)
             df_raw['RS Rating'] = df_raw['RS Rating'].fillna(df_raw['Perf.Y'].rank(pct=True)*99).astype(int)
-        # Excel Alerts Backfill - עם דיווח שגיאות
+        
+        # Excel Alerts Backfill - מעודכן עם העמודות החדשות
         ex_p = glob.glob(os.path.join(DATA_DIR, "Ultimate_Market_V3f_*.xlsx"))
         if ex_p:
             try:
@@ -178,12 +176,19 @@ def update_market_data():
                 print(f"📄 מנסה לטעון קובץ אקסל: {latest_excel}")
                 edfx = pd.read_excel(latest_excel, sheet_name='Full Raw Data')
                 
-                # התיקון: העמודה שונתה ל-Earnings_Date
-                cols_to_merge = ['Symbol', 'Earnings_Date', 'Kinetic_Slope', 'VDU_Alert']
+                # הרשימה המעודכנת: שמרנו על הישנים והוספנו את החדשים שביקשת
+                cols_to_merge = ['Symbol', 'Earnings_Date', 'Kinetic_Slope', 'VDU_Alert', 'Industry Group Name', 'SMA20_Pct', 'SMA50_Pct']
                 available_cols = [c for c in cols_to_merge if c in edfx.columns]
                 
                 if 'Symbol' in available_cols:
-                    df_raw = pd.merge(df_raw, edfx[available_cols], on='Symbol', how='left')
+                    # שימוש ב-suffixes מונע התנגשויות עמודות במקרה של כפילות (כמו Industry Group Name)
+                    df_raw = pd.merge(df_raw, edfx[available_cols], on='Symbol', how='left', suffixes=('', '_excel'))
+                    
+                    # מיזוג חכם: אם העמודה קיימת באקסל, היא תקבל עדיפות, אחרת נשמור על הנתון הקיים
+                    if 'Industry Group Name_excel' in df_raw.columns:
+                        df_raw['Industry Group Name'] = df_raw['Industry Group Name_excel'].combine_first(df_raw['Industry Group Name'])
+                        df_raw.drop(columns=['Industry Group Name_excel'], inplace=True)
+                        
                     print(f"✅ נתוני אקסל מוזגו בהצלחה! עמודות שנוספו: {available_cols}")
                 else:
                     print("❌ שגיאה: העמודה 'Symbol' חסרה בקובץ האקסל, לא ניתן למזג נתונים.")
@@ -193,8 +198,8 @@ def update_market_data():
         else:
             print("⚠️ לא נמצא קובץ אקסל שמתחיל ב-Ultimate_Market_V3f_ בתיקייה.")
 
-        # התיקון: העמודה שונתה ל-Earnings_Date
-        for c in ['Earnings_Date', 'Kinetic_Slope', 'VDU_Alert']:
+        # וידוא קיום עמודות כדי למנוע קריסות באפליקציה במידה וחסרים נתונים מהאקסל
+        for c in ['Earnings_Date', 'Kinetic_Slope', 'VDU_Alert', 'SMA20_Pct', 'SMA50_Pct']:
             if c not in df_raw.columns: df_raw[c] = ''
 
         # 5. שמירת הנתונים המעובדים לקבצים מקומיים (Pickle)
