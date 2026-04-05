@@ -203,22 +203,57 @@ with st.expander("🛠️ ADVANCED FILTERS & COLUMNS"):
 # Action Score calculation
 df_filtered['Action_Score'] = (df_filtered['RS Rating'] / 10) + (pd.to_numeric(df_filtered.get('Kinetic_Slope', 0), errors='coerce').fillna(0) / 50).clip(upper=3)
 
-# --- ACTION GRID ---
-st.markdown(f"### 🎯 ACTION GRID ({len(df_filtered)} STOCKS)")
+# ==========================================
+# MAIN DASHBOARD AREA
+# ==========================================
+# כותרת דינמית שמציגה את כמות המניות שעברו את הסינון
+st.title(f"🚀 STRIKE ZONE: ACTION GRID ({len(df_filtered)} STOCKS)")
+
+# 1. המרת שברים לאחוזים אמיתיים כדי שיוצגו כמו באקסל (0.15 -> 15.0)
+for col in ['SMA20_Pct', 'SMA50_Pct']:
+    if col in df_filtered.columns:
+        df_filtered[col] = pd.to_numeric(df_filtered[col], errors='coerce') * 100
+
+st.markdown("---")
+
+# 2. הוספת Industry Group Rank ו-Action Score לרשימות
+possible_cols = ['TV_Link', 'Price', 'Rel_Volume', 'Kinetic_Slope', 'RS Rating', 'Industry Group Rank', 'Industry Group Name', 
+                'SMA20_Pct', 'SMA50_Pct', 'Comp. Rating', 'Pattern_Badges', 'Weinstein_Stage', 'Earnings_Date', 'Action_Score']
+
+default_cols = ['TV_Link', 'Price', 'Rel_Volume', 'Kinetic_Slope', 'RS Rating', 'Industry Group Rank', 'Industry Group Name', 
+               'SMA20_Pct', 'SMA50_Pct', 'Weinstein_Stage', 'Pattern_Badges', 'Earnings_Date']
+
+# מגדיר אילו עמודות זמינות בפועל בתוך הנתונים כרגע
+available_cols = [c for c in possible_cols if c in df_filtered.columns]
+
+selected_view = st.multiselect("👀 בחר עמודות להצגה:", available_cols, default=[c for c in default_cols if c in available_cols])
+
+# 3. השילוב של קוד ה- Action Score שלך עם מניעת שגיאות
 display_final = selected_view.copy()
-if 'Action_Score' not in display_final: display_final.insert(0, 'Action_Score')
+if 'Action_Score' in df_filtered.columns and 'Action_Score' not in display_final: 
+    display_final.insert(0, 'Action_Score')
 
-strike_zone_df = df_filtered[display_final].sort_values('Action_Score', ascending=False)
+# מוודא שכל העמודות שנבחרו באמת קיימות במאגר הנתונים כדי למנוע קריסה
+disp_cols = [c for c in display_final if c in df_filtered.columns]
 
+# יצירת הטבלה הסופית ומיון לפי ציון האקשן
+if 'Action_Score' in df_filtered.columns:
+    strike_zone_df = df_filtered[disp_cols].sort_values('Action_Score', ascending=False)
+else:
+    strike_zone_df = df_filtered[disp_cols]
+
+# 4. תצוגת הטבלה כולל דירוג הקבוצה ואחוזים תקינים
 st.dataframe(strike_zone_df, use_container_width=True, hide_index=True, height=800,
     column_config={
         "TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
         "RS Rating": st.column_config.ProgressColumn("RS", format="%d", min_value=0, max_value=99),
         "Price": st.column_config.NumberColumn("PRICE", format="$%.2f"),
         "Rel_Volume": st.column_config.NumberColumn("RVOL 📊", format="%.2f"),
-        "Kinetic_Slope": st.column_config.NumberColumn("SLOPE 📈", format="%.2f"), # עמודה חדשה
-        "SMA20_Pct": st.column_config.NumberColumn("20MA %", format="%.1f%%"),     # תצוגת אחוזים
-        "SMA50_Pct": st.column_config.NumberColumn("50MA %", format="%.1f%%"),     # תצוגת אחוזים
+        "Kinetic_Slope": st.column_config.NumberColumn("SLOPE 📈", format="%.2f"),
+        "Industry Group Rank": st.column_config.NumberColumn("GRP RANK 🏆", format="%d"),
+        "SMA20_Pct": st.column_config.NumberColumn("20MA %", format="%.1f%%"),
+        "SMA50_Pct": st.column_config.NumberColumn("50MA %", format="%.1f%%"),
+        "Action_Score": st.column_config.NumberColumn("SCORE 🎯", format="%d"), # עיצוב לציון שלך
         "Industry Group Name": st.column_config.TextColumn("INDUSTRY 🏗️"),
         "Earnings_Date": st.column_config.TextColumn("דוחות 📅")
     })
