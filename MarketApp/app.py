@@ -30,24 +30,37 @@ st.markdown("""
 # ==========================================
 # שליפת הנתונים דרך שכבת ה-Data Manager
 # ==========================================
-# כאן אנחנו משתמשים בפונקציית הזיכרון של סטרים-ליט רק כדי לא לקרוא מהדיסק בכל לחיצת כפתור
 @st.cache_data(ttl=900)
 def get_cached_ui_data():
     return data_manager.get_ui_data()
 
-df_raw, df_grp, last_updated = get_cached_ui_data()
+df_raw, df_grp, manifest = get_cached_ui_data()
 
 if df_raw.empty:
-    st.error("לא נמצאו נתונים. ודא ש-data_updater.py רץ בהצלחה.")
+    st.error("לא נמצאו נתונים כלל. המערכת ריקה. ודא ש-data_updater.py רץ לפחות פעם אחת בהצלחה.")
     st.stop()
+
+# --- עיבוד נתוני המניפסט (סטטוס השרת) ---
+run_status = manifest.get("status", "unknown")
+error_msg = manifest.get("error_message", "Unknown error")
+last_updated_raw = manifest.get("last_updated", "")
+try:
+    from datetime import datetime
+    last_updated = datetime.fromisoformat(last_updated_raw).strftime("%Y-%m-%d %H:%M:%S")
+except:
+    last_updated = "לא ידוע"
 
 # --- תפריט צד (SIDEBAR FILTERS) ---
 with st.sidebar:
     st.header("⚙️ CORE PARAMETERS")
     
-    # תצוגת חותמת זמן שמגיעה מה-Manifest!
-    st.caption(f"📡 עדכון אחרון מהשרת: {last_updated}")
-    
+    # הצגת סטטוס השרת למשתמש בצורה בטוחה
+    if run_status == "failed":
+        st.error(f"⚠️ תקלת שרת בעדכון האחרון!\n\n**סיבה:** {error_msg}\n\n*מערכת ההגנה בלמה את העדכון. מוצגים נתונים מהעדכון התקין האחרון.*")
+        st.caption(f"💾 נתונים בתוקף מ: {last_updated}")
+    else:
+        st.success(f"📡 הנתונים מעודכנים ל: {last_updated}")
+        
     if st.button("🔄 רענן תצוגת נתונים"):
         st.cache_data.clear()
         st.rerun()
