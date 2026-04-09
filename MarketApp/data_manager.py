@@ -4,7 +4,10 @@ import json
 import os
 from datetime import datetime
 
-DATA_DIR = "data"
+# מציאת התיקייה שבה יושב הקובץ הזה, וחיפוש תיקיית data בתוכה
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+
 MANIFEST_PATH = os.path.join(DATA_DIR, "manifest.json")
 MARKET_SNAPSHOT_PATH = os.path.join(DATA_DIR, "market_snapshot.pkl")
 GROUP_SNAPSHOT_PATH = os.path.join(DATA_DIR, "group_snapshot.pkl")
