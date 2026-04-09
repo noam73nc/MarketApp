@@ -179,29 +179,14 @@ else:
 
 # --- MACRO MOMENTUM ---
 st.markdown("---")
-# אנחנו משתמשים ב-df_filtered (טבלת המניות) ולא בטבלת הסקטורים, כדי לקבל את הלינקים!
 if not df_filtered.empty and 'Rank_Improvement' in df_filtered.columns:
     st.markdown("### 🚀 MOMENTUM: TOP STOCKS IN JUMPING GROUPS")
-    
-    # סינון מניות (שעברו את הפילטרים שלך) ושהסקטור שלהן קפץ בדירוג
     j_df = df_filtered[df_filtered['Rank_Improvement'] > 0]
     
     if not j_df.empty:
-        # מוודאים שאנחנו מציגים רק עמודות שבאמת קיימות כדי למנוע קריסות
         ideal_cols = ['Industry Group Name', 'Rank_Improvement', 'TV_Link', 'RS Rating']
         exist_cols = [c for c in ideal_cols if c in j_df.columns]
         
-        # מגדירים לפי מה למיין (קודם כל לפי קפיצת הסקטור, ואז לפי חוזק המניה)
-        sort_cols = ['Rank_Improvement']
-        if 'RS Rating' in exist_cols: 
-            sort_cols.append('RS Rating')
-        
-        if not j_df.empty:
-        # מוודאים שאנחנו מציגים רק עמודות שבאמת קיימות כדי למנוע קריסות
-        ideal_cols = ['Industry Group Name', 'Rank_Improvement', 'TV_Link', 'RS Rating']
-        exist_cols = [c for c in ideal_cols if c in j_df.columns]
-        
-        # מגדירים לפי מה למיין
         sort_cols = ['Rank_Improvement']
         if 'RS Rating' in exist_cols: 
             sort_cols.append('RS Rating')
