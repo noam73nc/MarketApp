@@ -62,7 +62,7 @@ with st.sidebar:
     stages = sorted(df_raw['Weinstein_Stage'].dropna().unique())
     selected_stages = st.multiselect("📊 Stage", stages, default=[s for s in stages if "Stage 2" in s])
     
-    selected_patterns = st.multiselect("🔍 תבניות מחיר", ["U&R", "HVC", "VCP", "Squat", "VDU"], default=[])
+    selected_patterns = st.multiselect("🔍 תבניות מחיר", ["U&R", "HVC", "Tight", "Squat", "VDU"], default=[])
 
     st.markdown("---")
     st.header("📊 IBD DATA SELECTION")
