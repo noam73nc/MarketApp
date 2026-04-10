@@ -6,3 +6,4 @@ streamlit-lightweight-charts
 tradingview-screener
 openpyxl
 xlsxwriter
+scipy
