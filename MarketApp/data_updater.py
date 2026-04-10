@@ -120,7 +120,7 @@ def update_market_data():
             if rvol > 1.2 and adr > 0 and (spread / lo * 100 if lo > 0 else 0) > adr and cp < 0.4: b.append("SQUAT 🏋️")
             if atr > 0 and spread < (atr * 0.7) and cp > 0.5: b.append("ID 🕯️")
             if perf3 > 0.90 and h52p >= -0.20: b.append("HTF 🚩")
-            if adr > 0 and (spread / lo * 100 if lo > 0 else adr) < (adr * 0.6) and rvol < 1.0: b.append("Tight/VCP 🤏")
+            if adr > 0 and (spread / lo * 100 if lo > 0 else adr) < (adr * 0.6) and rvol < 1.0: b.append("Tight 🤏")
             if h52p >= -0.02: b.append("52W High 👑")
             if sma10 > 0 and (p / sma10 - 1) > 0.15: b.append("EXT ⚠️")
             return "  ".join(b)
