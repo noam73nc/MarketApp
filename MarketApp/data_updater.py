@@ -25,10 +25,6 @@ def find_file_robust(directory, filename_target):
     return None
 
 def validate_data(df):
-    """
-    מנוע אימות (Circuit Breaker).
-    זורק שגיאה אם הנתונים לא עוברים את בדיקות השפיות הקפדניות.
-    """
     if df.empty:
         raise ValueError("Dataframe is completely empty.")
 
@@ -54,11 +50,7 @@ def validate_data(df):
         raise ValueError("Over 20% of stocks have EXACTLY 0 RVOL. Upstream volume feed error suspected.")
 
 def is_true_vcp(hist_df):
-    """
-    מנוע מתמטי לזיהוי True VCP לפי מארק מינרוויני.
-    מקבל היסטוריית גרף יומי של חצי שנה ומחזיר True/False.
-    """
-    if len(hist_df) < 60: # דורש לפחות 3 חודשי היסטוריה לבסיס
+    if len(hist_df) < 60: 
         return False
         
     highs = hist_df['High'].values
@@ -66,12 +58,10 @@ def is_true_vcp(hist_df):
     vols = hist_df['Volume'].values
     closes = hist_df['Close'].values
     
-    # 1. זיהוי שיאים (Peaks) - מינימום 7 ימים בין שיא לשיא כדי לסנן רעש
     peaks, _ = find_peaks(highs, distance=7)
     if len(peaks) < 2:
         return False 
         
-    # 2. מדידת עומק התיקונים (Drawdowns) מכל שיא לשפל שאחריו
     contractions = []
     for i in range(len(peaks)):
         peak_idx = peaks[i]
@@ -88,25 +78,21 @@ def is_true_vcp(hist_df):
     if len(contractions) < 2 or len(contractions) > 5:
         return False
         
-    # 3. בדיקת ההיצרות (Progressive Tightening)
     for i in range(len(contractions) - 1):
         if contractions[i+1] > contractions[i] * 1.10: 
-            return False # התנודתיות התרחבה! (Distribution)
+            return False 
             
-    # 4. חוקי עומק מינרוויני נוקשים:
-    if contractions[0] > 35: # התיקון הראשון לא יכול להיות התרסקות
+    if contractions[0] > 35: 
         return False
     final_contraction = contractions[-1]
-    if final_contraction > 10: # הכיווץ האחרון חייב להיות קטן מ-10%
+    if final_contraction > 10: 
         return False
         
-    # 5. התייבשות מחזורים (Volume Dry-up) בימי הכיווץ האחרונים
     recent_vol = np.mean(vols[-10:])
     avg_vol = np.mean(vols[-50:])
-    if recent_vol > avg_vol * 0.8: # דורשים התייבשות של לפחות 20% מהממוצע
+    if recent_vol > avg_vol * 0.8: 
         return False
         
-    # 6. קרבה לנקודת הפריצה (Pivot)
     last_peak_idx = peaks[-1]
     pivot_price = highs[last_peak_idx]
     current_price = closes[-1]
@@ -122,10 +108,10 @@ def update_market_data():
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] מתחיל משיכת נתונים ועדכון...")
     
     try:
-        # 1. TradingView Live Data
+        # הוספנו את 'change' לשאילתה כדי לחשב את הגאפ!
         query = (Query()
                  .set_markets('america')
-                 .select('name','type', 'close', 'open', 'high', 'low', 'volume', 'average_volume_10d_calc', 
+                 .select('name','type', 'close', 'open', 'high', 'low', 'change', 'volume', 'average_volume_10d_calc', 
                          'market_cap_basic', 'sector', 'industry', 
                          'SMA10', 'SMA20', 'SMA50', 'SMA200', 'price_52_week_high', 'price_52_week_low',
                          'Perf.W', 'Perf.1M', 'Perf.3M', 'Perf.Y', 'ATR')
@@ -150,7 +136,7 @@ def update_market_data():
         df_raw['Market_Cap_B'] = pd.to_numeric(df_raw['Market Cap'], errors='coerce') / 1_000_000_000.0
         df_raw['Dollar_Volume_M'] = (df_raw['Price'] * df_raw['TV_AvgVol10']) / 1_000_000.0
 
-        # 2. Live Pattern Engine
+        # חישובים טכניים בסיסיים
         df_raw['Rel_Volume'] = np.where(df_raw['TV_AvgVol10'] > 0, df_raw['TV_Volume'] / df_raw['TV_AvgVol10'], 0)
         df_raw['Spread'] = df_raw['high'] - df_raw['low']
         df_raw['Close_Pos'] = np.where(df_raw['Spread'] > 0, (df_raw['Price'] - df_raw['low']) / df_raw['Spread'], 0.5)
@@ -161,9 +147,13 @@ def update_market_data():
         df_raw['SMA50_Pct'] = np.where(pd.to_numeric(df_raw['SMA50'], errors='coerce') > 0, 
                                       (df_raw['Price'] - df_raw['SMA50']) / df_raw['SMA50'], 0)
 
+        # ==========================================================
+        # 🧠 מנוע התבניות (Pattern Engine) המורחב
+        # ==========================================================
         def get_patterns(row):
             b = []
             p, op, hi, lo = row.get('Price', 0), row.get('open', 0), row.get('high', 0), row.get('low', 0)
+            change = row.get('change', 0) # אחוז השינוי היומי
             rvol, atr, adr = row.get('Rel_Volume', 1), row.get('ATR', 0), row.get('ADR_Pct', 0)
             sma10, sma20, sma50, sma200 = row.get('SMA10', 0), row.get('SMA20', 0), row.get('SMA50', 0), row.get('SMA200', 0)
             spread, cp = row.get('Spread', 0), row.get('Close_Pos', 0.5)
@@ -173,6 +163,25 @@ def update_market_data():
             h52p = (p - h52) / h52 if h52 and h52 > 0 else -99
 
             if p <= 0: return ""
+
+            # --- ✨ חדש: Episodic Pivot (EP 🚀) ---
+            # מחשבים את הסגירה של אתמול דרך אחוז השינוי של היום
+            if pd.notna(change):
+                prev_close = p / (1 + (change / 100.0))
+                if prev_close > 0:
+                    gap_pct = ((op - prev_close) / prev_close) * 100
+                    if gap_pct >= 10: # אם הגאפ בפתיחה גדול/שווה ל-10%
+                        b.append("EP 🚀")
+
+            # --- ✨ חדש: תבניות יחס ADR ---
+            if atr > 0:
+                adr_ratio = spread / atr
+                if 0.8 <= adr_ratio <= 1.2:
+                    b.append("1 ADR 📏")
+                elif 1.5 <= adr_ratio <= 2.5:
+                    b.append("2 ADR 🔥")
+
+            # --- שאר התבניות הקלאסיות ---
             if sma50 > 0 and lo < sma50 < p: b.append("U&R(50) 🛡️")
             if sma20 > 0 and lo < sma20 < p: b.append("U&R(21) 🛡️")
             if sma50 > 0 and (0.0 <= (p - sma50) / sma50 <= 0.03) and p > sma200: b.append("Bounce50 🏀")
@@ -181,9 +190,10 @@ def update_market_data():
             if rvol > 1.2 and adr > 0 and (spread / lo * 100 if lo > 0 else 0) > adr and cp < 0.4: b.append("SQUAT 🏋️")
             if atr > 0 and spread < (atr * 0.7) and cp > 0.5: b.append("ID 🕯️")
             if perf3 > 0.90 and h52p >= -0.20: b.append("HTF 🚩")
-            if adr > 0 and (spread / lo * 100 if lo > 0 else adr) < (adr * 0.6) and rvol < 1.0: b.append("Tight 🤏") # שונה מ-VCP!
+            if adr > 0 and (spread / lo * 100 if lo > 0 else adr) < (adr * 0.6) and rvol < 1.0: b.append("Tight 🤏")
             if h52p >= -0.02: b.append("52W High 👑")
             if sma10 > 0 and (p / sma10 - 1) > 0.15: b.append("EXT ⚠️")
+            
             return "  ".join(b)
 
         df_raw['Pattern_Badges'] = df_raw.apply(get_patterns, axis=1)
@@ -268,7 +278,6 @@ def update_market_data():
         # =======================================================
         print("🔍 מכין רשימת מועמדות ל-True VCP...")
         
-        # יצירת עמודת עזר נומרית ל-RS כדי למנוע קריסה בסינון
         if 'RS Rating' in df_raw.columns:
             df_raw['RS_Num'] = pd.to_numeric(df_raw['RS Rating'], errors='coerce').fillna(0)
         else:
@@ -283,13 +292,11 @@ def update_market_data():
         if vcp_candidates:
             print(f"⏳ מוריד היסטוריית 6 חודשים עבור {len(vcp_candidates)} מניות מועמדות...")
             try:
-                # הורדת נתונים מרוכזת ומהירה מ-YFinance
                 hist_data = yf.download(vcp_candidates, period="6m", auto_adjust=True, progress=False)
                 true_vcp_tickers = []
                 
                 for ticker in vcp_candidates:
                     try:
-                        # חילוץ ההיסטוריה של המניה הספציפית
                         if len(vcp_candidates) > 1:
                             df_ticker = pd.DataFrame({
                                 'High': hist_data['High'][ticker],
@@ -300,13 +307,11 @@ def update_market_data():
                         else:
                             df_ticker = hist_data.dropna()
                             
-                        # הפעלת האלגוריתם המתמטי
                         if is_true_vcp(df_ticker):
                             true_vcp_tickers.append(ticker)
                     except Exception as e:
                         continue 
                 
-                # שלב ב': הענקת התגית היוקרתית
                 if true_vcp_tickers:
                     print(f"🎯 בינגו! נמצאו {len(true_vcp_tickers)} מניות True VCP: {true_vcp_tickers}")
                     df_raw['Pattern_Badges'] = np.where(
@@ -324,26 +329,21 @@ def update_market_data():
             except Exception as e:
                 print(f"⚠️ סריקת ה-VCP נכשלה (המערכת תמשיך כרגיל ללא התגית): {e}")
 
-        # ניקוי עמודת העזר של ה-RS
         if 'RS_Num' in df_raw.columns:
             df_raw.drop(columns=['RS_Num'], inplace=True)
 
-        # --- אימות קפדני (Strict Validation) לפני שמירה ---
         print("🔍 מריץ אימות נתונים קפדני (Circuit Breaker)...")
         validate_data(df_raw)
 
-        # נשמור נתונים רק אם עברנו את האימות (לא נזרקה שגיאה)
         df_raw.to_pickle(os.path.join(DATA_DIR, "market_snapshot.pkl"))
         group_df.to_pickle(os.path.join(DATA_DIR, "group_snapshot.pkl"))
         print(f"✅ אימות עבר! העדכון הסתיים בהצלחה והנתונים נשמרו.")
 
     except Exception as e:
-        # אם האימות או הריצה נכשלו, הנתונים הישנים מוגנים!
         run_status = "failed"
         error_msg = str(e)
         print(f"❌ הריצה נכשלה/נבלמה: {error_msg}")
 
-    # --- יצירת קובץ Manifest ---
     finally:
         manifest_data = {
             "last_updated": datetime.now().isoformat(),
