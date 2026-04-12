@@ -10,6 +10,32 @@ from datetime import datetime
 # --- הגדרות עמוד ועיצוב Space Command ---
 st.set_page_config(page_title="Hybrid Command Center", layout="wide", page_icon="📟")
 
+# --- מערכת אבטחה (שומר סף) ---
+def check_password():
+    """מחזיר True אם המשתמש הזין את הסיסמה הנכונה."""
+    def password_entered():
+        # כאן אתה מגדיר את הסיסמה שתיתן לחברים! 
+        if st.session_state["password"] == "StrikeZone2026":
+            st.session_state["password_correct"] = True
+            del st.session_state["password"] # מחיקת הסיסמה מהזיכרון מטעמי אבטחה
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🔒 אנא הזן סיסמת גישה למערכת</h3>", unsafe_allow_html=True)
+        st.text_input("", type="password", on_change=password_entered, key="password")
+        return False
+    elif not st.session_state["password_correct"]:
+        st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🔒 אנא הזן סיסמת גישה למערכת</h3>", unsafe_allow_html=True)
+        st.text_input("", type="password", on_change=password_entered, key="password")
+        st.error("😕 סיסמה שגויה, נסה שוב.")
+        return False
+    return True
+
+# אם הסיסמה לא נכונה, המערכת פשוט תעצור כאן ולא תטען את הנתונים
+if not check_password():
+    st.stop()
+
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
