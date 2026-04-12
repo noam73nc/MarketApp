@@ -293,9 +293,14 @@ for col in numeric_cols_to_clean:
     if col in strike_zone_df.columns:
         strike_zone_df[col] = pd.to_numeric(strike_zone_df[col], errors='coerce')
 
-styled_df = apply_table_theme(df_display, selected_theme)
-st.dataframe(styled_df, use_container_width=True) 
-    hide_index=True, 
+# --- הצגת הטבלה ---
+        styled_df = apply_table_theme(df_display, selected_theme)
+        
+        st.dataframe(
+            styled_df,
+            use_container_width=True,
+            hide_index=True
+        ) 
     height=800,
     column_order=disp_cols,
     column_config={
