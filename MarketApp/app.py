@@ -179,13 +179,14 @@ if not strike_zone_df.empty:
 else:
     st.sidebar.warning("אין נתונים לייצוא (לוח ריק)")
 
+# --- הדיסקליימר וזכויות יוצרים בסיידבר ---
 st.sidebar.markdown("<br><br>" * 5, unsafe_allow_html=True)
 st.sidebar.markdown("---")
 st.sidebar.info("""
-
-**⚠️  (Disclaimer):**
+**⚠️ (Disclaimer):**
 המידע המוצג במערכת זו נועד למטרות לימודיות ואינפורמטיביות בלבד ואינו מהווה המלצה ואו ייעוץ השקעות. המסחר בשוק ההון כרוך בסיכון גבוה. המשתמש נושא באחריות המלאה לכל פעולה שיבצע.
 """)
+st.sidebar.markdown(f"<div style='text-align: center; font-size: 0.9em; color: #8AB4F8;'>© {datetime.now().year} <b>noam73nc</b>. כל הזכויות שמורות.</div>", unsafe_allow_html=True)
 
 # --- CHARTING ---
 st.markdown("---")
