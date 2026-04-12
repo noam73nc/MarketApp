@@ -15,7 +15,7 @@ def check_password():
     """מחזיר True אם המשתמש הזין את הסיסמה הנכונה."""
     def password_entered():
         # כאן אתה מגדיר את הסיסמה שתיתן לחברים! 
-        if st.session_state["password"] == "StrikeZone2026":
+        if st.session_state["password"] == "TradersMind2026":
             st.session_state["password_correct"] = True
             del st.session_state["password"] # מחיקת הסיסמה מהזיכרון מטעמי אבטחה
         else:
