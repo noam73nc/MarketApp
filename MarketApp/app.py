@@ -296,8 +296,8 @@ st.dataframe(
     use_container_width=True,
     hide_index=True,
     height=800,
-            column_order=disp_cols,
-            column_config={
+    column_order=disp_cols,
+    column_config={
                 "TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
                 "Price": st.column_config.NumberColumn("PRICE", format="$%.2f"),
                 "Rel_Volume": st.column_config.NumberColumn("RVOL 📊", format="%.2f"),
