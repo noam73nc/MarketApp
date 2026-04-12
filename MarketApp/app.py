@@ -299,36 +299,35 @@ for col in numeric_cols_to_clean:
         st.dataframe(
             styled_df,
             use_container_width=True,
-            hide_index=True
-        ) 
-    height=800,
-    column_order=disp_cols,
-    column_config={
-        "TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
-        "Price": st.column_config.NumberColumn("PRICE", format="$%.2f"),
-        "Rel_Volume": st.column_config.NumberColumn("RVOL 📊", format="%.2f"),
-        "Action_Score": st.column_config.NumberColumn("SCORE 🎯", format="%d"),
-        "Earnings_Date": st.column_config.TextColumn("דוחות 📅"),
-        "Weinstein_Stage": st.column_config.TextColumn("STAGE 📊"),
-        "Pattern_Badges": st.column_config.TextColumn("PATTERNS 🔍"),
-        "SMA20_Pct": st.column_config.NumberColumn("20MA %", format="%.1f%%"),
-        "SMA50_Pct": st.column_config.NumberColumn("50MA %", format="%.1f%%"),
-        "Kinetic_Slope": st.column_config.NumberColumn("SLOPE 📈", format="%.2f"),
-        "ATR": st.column_config.NumberColumn("ATR ($)", format="%.2f"),
-        "ADR_Pct": st.column_config.NumberColumn("ADR %", format="%.2f%%"),
-        "Perf.1M": st.column_config.NumberColumn("1M PERF", format="%.1f%%"),
-        "Market_Cap_B": st.column_config.NumberColumn("CAP ($B)", format="%.2f"),
-        "Industry Group Rank": st.column_config.NumberColumn("GRP RANK 🏆", format="%d"),
-        "Industry Group Name": st.column_config.TextColumn("INDUSTRY 🏗️"),
-        "RS Rating": st.column_config.ProgressColumn("RS", format="%d", min_value=0, max_value=99),
-        "Comp. Rating": st.column_config.ProgressColumn("COMP", format="%d", min_value=0, max_value=99),
-        "EPS Rating": st.column_config.ProgressColumn("EPS", format="%d", min_value=0, max_value=99),
-        "Acc/Dis Rating": st.column_config.TextColumn("A/D 📈"),
-        "SMR Rating": st.column_config.TextColumn("SMR"),
-        "Spon Rating": st.column_config.TextColumn("SPON"),
-        "Ind Grp RS": st.column_config.TextColumn("GRP RS"),
-    }
-
+            hide_index=True,
+            height=800,
+            column_order=disp_cols,
+            column_config={
+                "TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
+                "Price": st.column_config.NumberColumn("PRICE", format="$%.2f"),
+                "Rel_Volume": st.column_config.NumberColumn("RVOL 📊", format="%.2f"),
+                "Action_Score": st.column_config.NumberColumn("SCORE 🎯", format="%d"),
+                "Earnings_Date": st.column_config.TextColumn("דוחות 📅"),
+                "Weinstein_Stage": st.column_config.TextColumn("STAGE 📊"),
+                "Pattern_Badges": st.column_config.TextColumn("PATTERNS 🔍"),
+                "SMA20_Pct": st.column_config.NumberColumn("20MA %", format="%.1f%%"),
+                "SMA50_Pct": st.column_config.NumberColumn("50MA %", format="%.1f%%"),
+                "Kinetic_Slope": st.column_config.NumberColumn("SLOPE 📈", format="%.2f"),
+                "ATR": st.column_config.NumberColumn("ATR ($)", format="%.2f"),
+                "ADR_Pct": st.column_config.NumberColumn("ADR %", format="%.2f%%"),
+                "Perf.1M": st.column_config.NumberColumn("1M PERF", format="%.1f%%"),
+                "Market_Cap_B": st.column_config.NumberColumn("CAP ($B)", format="%.2f"),
+                "Industry Group Rank": st.column_config.NumberColumn("GRP RANK 🏆", format="%d"),
+                "Industry Group Name": st.column_config.TextColumn("INDUSTRY 🏗️"),
+                "RS Rating": st.column_config.ProgressColumn("RS", format="%d", min_value=0, max_value=99),
+                "Comp. Rating": st.column_config.ProgressColumn("COMP", format="%d", min_value=0, max_value=99),
+                "EPS Rating": st.column_config.ProgressColumn("EPS", format="%d", min_value=0, max_value=99),
+                "Acc/Dis Rating": st.column_config.TextColumn("A/D 📈"),
+                "SMR Rating": st.column_config.TextColumn("SMR"),
+                "Spon Rating": st.column_config.TextColumn("SPON"),
+                "Ind Grp RS": st.column_config.TextColumn("GRP RS"),
+            }
+        )
 
 # === מיקום נכון של כפתור הייצוא בסיידבר ===
 st.sidebar.markdown("---")
