@@ -294,7 +294,7 @@ for col in numeric_cols_to_clean:
         strike_zone_df[col] = pd.to_numeric(strike_zone_df[col], errors='coerce')
 
 # --- הצגת הטבלה ---
-        styled_df = apply_table_theme(df_display, selected_theme)
+        styled_df = apply_table_theme(strike_zone_df[col])
         
         st.dataframe(
             styled_df,
