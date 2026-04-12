@@ -283,12 +283,20 @@ if 'Action_Score' in df_filtered.columns:
 else:
     strike_zone_df = df_filtered[disp_cols]
 
+# ==============================================================
+# התיקון: הגדרת רשימת העמודות המספריות לפני הלולאה
+# ==============================================================
+numeric_cols_to_clean = [
+    'Price', 'Rel_Volume', 'Action_Score', 'SMA20_Pct', 'SMA50_Pct', 
+    'Kinetic_Slope', 'ATR', 'ADR_Pct', 'Perf.1M', 'Market_Cap_B', 
+    'Industry Group Rank', 'RS Rating', 'Comp. Rating', 'EPS Rating'
+]
+
 for col in numeric_cols_to_clean:
     if col in strike_zone_df.columns:
         strike_zone_df[col] = pd.to_numeric(strike_zone_df[col], errors='coerce')
 
-# 2. --- הצגת הטבלה --- 
-# (הלולאה הסתיימה! אנחנו חוזרים ליישור שמאלה לחלוטין)
+# --- הצגת הטבלה צבועה לפי העיצוב ---
 styled_df = apply_table_theme(strike_zone_df, selected_theme)
 
 st.dataframe(
@@ -298,31 +306,31 @@ st.dataframe(
     height=800,
     column_order=disp_cols,
     column_config={
-                "TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
-                "Price": st.column_config.NumberColumn("PRICE", format="$%.2f"),
-                "Rel_Volume": st.column_config.NumberColumn("RVOL 📊", format="%.2f"),
-                "Action_Score": st.column_config.NumberColumn("SCORE 🎯", format="%d"),
-                "Earnings_Date": st.column_config.TextColumn("דוחות 📅"),
-                "Weinstein_Stage": st.column_config.TextColumn("STAGE 📊"),
-                "Pattern_Badges": st.column_config.TextColumn("PATTERNS 🔍"),
-                "SMA20_Pct": st.column_config.NumberColumn("20MA %", format="%.1f%%"),
-                "SMA50_Pct": st.column_config.NumberColumn("50MA %", format="%.1f%%"),
-                "Kinetic_Slope": st.column_config.NumberColumn("SLOPE 📈", format="%.2f"),
-                "ATR": st.column_config.NumberColumn("ATR ($)", format="%.2f"),
-                "ADR_Pct": st.column_config.NumberColumn("ADR %", format="%.2f%%"),
-                "Perf.1M": st.column_config.NumberColumn("1M PERF", format="%.1f%%"),
-                "Market_Cap_B": st.column_config.NumberColumn("CAP ($B)", format="%.2f"),
-                "Industry Group Rank": st.column_config.NumberColumn("GRP RANK 🏆", format="%d"),
-                "Industry Group Name": st.column_config.TextColumn("INDUSTRY 🏗️"),
-                "RS Rating": st.column_config.ProgressColumn("RS", format="%d", min_value=0, max_value=99),
-                "Comp. Rating": st.column_config.ProgressColumn("COMP", format="%d", min_value=0, max_value=99),
-                "EPS Rating": st.column_config.ProgressColumn("EPS", format="%d", min_value=0, max_value=99),
-                "Acc/Dis Rating": st.column_config.TextColumn("A/D 📈"),
-                "SMR Rating": st.column_config.TextColumn("SMR"),
-                "Spon Rating": st.column_config.TextColumn("SPON"),
-                "Ind Grp RS": st.column_config.TextColumn("GRP RS"),
-            }
-        )
+        "TV_Link": st.column_config.LinkColumn("SYM 🔗", display_text=r"symbol=(.*)"),
+        "Price": st.column_config.NumberColumn("PRICE", format="$%.2f"),
+        "Rel_Volume": st.column_config.NumberColumn("RVOL 📊", format="%.2f"),
+        "Action_Score": st.column_config.NumberColumn("SCORE 🎯", format="%d"),
+        "Earnings_Date": st.column_config.TextColumn("דוחות 📅"),
+        "Weinstein_Stage": st.column_config.TextColumn("STAGE 📊"),
+        "Pattern_Badges": st.column_config.TextColumn("PATTERNS 🔍"),
+        "SMA20_Pct": st.column_config.NumberColumn("20MA %", format="%.1f%%"),
+        "SMA50_Pct": st.column_config.NumberColumn("50MA %", format="%.1f%%"),
+        "Kinetic_Slope": st.column_config.NumberColumn("SLOPE 📈", format="%.2f"),
+        "ATR": st.column_config.NumberColumn("ATR ($)", format="%.2f"),
+        "ADR_Pct": st.column_config.NumberColumn("ADR %", format="%.2f%%"),
+        "Perf.1M": st.column_config.NumberColumn("1M PERF", format="%.1f%%"),
+        "Market_Cap_B": st.column_config.NumberColumn("CAP ($B)", format="%.2f"),
+        "Industry Group Rank": st.column_config.NumberColumn("GRP RANK 🏆", format="%d"),
+        "Industry Group Name": st.column_config.TextColumn("INDUSTRY 🏗️"),
+        "RS Rating": st.column_config.ProgressColumn("RS", format="%d", min_value=0, max_value=99),
+        "Comp. Rating": st.column_config.ProgressColumn("COMP", format="%d", min_value=0, max_value=99),
+        "EPS Rating": st.column_config.ProgressColumn("EPS", format="%d", min_value=0, max_value=99),
+        "Acc/Dis Rating": st.column_config.TextColumn("A/D 📈"),
+        "SMR Rating": st.column_config.TextColumn("SMR"),
+        "Spon Rating": st.column_config.TextColumn("SPON"),
+        "Ind Grp RS": st.column_config.TextColumn("GRP RS"),
+    }
+)
 
 # === מיקום נכון של כפתור הייצוא בסיידבר ===
 st.sidebar.markdown("---")
