@@ -247,6 +247,23 @@ def update_market_data():
                     'Spon Rating', 'Ind Grp RS', 'Industry Group Rank', 'Rank_Improvement', 'Industry Group Name']
             df_raw = pd.merge(df_raw, df_ibd[[c for c in icols if c in df_ibd.columns]], on='Symbol', how='left')
             
+        # --- משיכת נתונים משלימים מאקסל (דוחות, קינטיק סלופ ועוד) ---
+        print("📄 מושך נתוני דוחות ושיפוע מתוך האקסל המקומי...")
+        ex_p = glob.glob(os.path.join(DATA_DIR, "Ultimate_Market_V3f_*.xlsx"))
+        if ex_p:
+            try:
+                latest_excel = max(ex_p, key=os.path.getmtime)
+                edfx = pd.read_excel(latest_excel, sheet_name='Full Raw Data')
+                cols_to_merge = ['Symbol', 'Earnings_Date', 'Kinetic_Slope', 'VDU_Alert', 'Industry Group Name', 'Action_Score']
+                available_cols = [c for c in cols_to_merge if c in edfx.columns]
+                
+                if 'Symbol' in available_cols:
+                    df_raw = pd.merge(df_raw, edfx[available_cols], on='Symbol', how='left', suffixes=('', '_excel'))
+                    if 'Industry Group Name_excel' in df_raw.columns:
+                        df_raw['Industry Group Name'] = df_raw['Industry Group Name_excel'].combine_first(df_raw['Industry Group Name'])
+                        df_raw.drop(columns=['Industry Group Name_excel'], inplace=True)
+            except Exception as e: print(f"❌ שגיאת אקסל: {e}")    
+            
         # --- מנוע Action Score דינמי ---
         if 'Action_Score' not in df_raw.columns:
             base_score = pd.to_numeric(df_raw.get('RS Rating', 0), errors='coerce').fillna(0)
