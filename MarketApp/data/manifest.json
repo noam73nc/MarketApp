@@ -1,5 +1,5 @@
 {
-    "last_updated": "2026-04-24T11:21:32.524027",
+    "last_updated": "2026-04-24T11:48:09.247250",
     "status": "success",
     "error_message": "",
     "total_stocks_processed": 4024,
@@ -54,6 +54,7 @@
         "Kinetic_Slope",
         "VDU_Alert",
         "Action_Score",
-        "PP_30d"
+        "PP_30d",
+        "VBO_30d"
     ]
 }
