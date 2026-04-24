@@ -204,6 +204,7 @@ with st.expander("📖 מדריך קריאה למשתמש (Cheat Sheet) - לחץ
     <p><b>מילון תבניות ומדדים (Badges & Metrics):</b></p>
     <ul>
         <li><b>💧 PP (30d):</b> כמה פעמים המניה ביצעה "Pocket Pivot" (קנייה מוסדית שקטה) ב-30 הימים האחרונים.</li>
+        <li><b>💥 VBO (30d):</b> כמה פעמים המניה פרצה את שיא הווליום המוחלט של 10 הימים האחרונים (התפוצצות עוצמתית).</li>
         <li><b>👑 True VCP:</b> הגביע הקדוש! התכווצות תנודתיות + התייבשות מחזורים לפי חוקי מארק מינרוויני.</li>
         <li><b>EP 🚀:</b> Episodic Pivot. המניה פתחה ב"גאפ" (פער) של למעלה מ-10% בעקבות אירוע/דוחות.</li>
         <li><b>Gap 📈:</b> קפיצת מחיר סטנדרטית של 4% ומעלה בפתיחה.</li>
@@ -238,13 +239,13 @@ possible_general = [
     'TV_Link', 'Price', 'Rel_Volume', 'Kinetic_Slope', 'RS Rating', 
     'Industry Group Rank', 'Industry Group Name', 'SMA20_Pct', 'SMA50_Pct', 
     'Pattern_Badges', 'Weinstein_Stage', 'Earnings_Date', 'Action_Score',
-    'Market_Cap_B', 'ATR', 'ADR_Pct', 'Perf.1M', 'PP_30d'
+    'Market_Cap_B', 'ATR', 'ADR_Pct', 'Perf.1M', 'PP_30d', 'VBO_30d'
 ]
 
 default_general = [
     'TV_Link', 'Price', 'Rel_Volume', 'Kinetic_Slope', 'RS Rating', 
     'Industry Group Rank', 'Industry Group Name', 'SMA20_Pct', 'SMA50_Pct', 
-    'Weinstein_Stage', 'Pattern_Badges', 'Earnings_Date', 'PP_30d'
+    'Weinstein_Stage', 'Pattern_Badges', 'Earnings_Date', 'PP_30d', 'VBO_30d'
 ]
 
 available_general = [c for c in possible_general if c in df_filtered.columns]
@@ -270,7 +271,7 @@ else:
 numeric_cols_to_clean = [
     'Price', 'Rel_Volume', 'Action_Score', 'SMA20_Pct', 'SMA50_Pct', 
     'Kinetic_Slope', 'ATR', 'ADR_Pct', 'Perf.1M', 'Market_Cap_B', 
-    'Industry Group Rank', 'RS Rating', 'Comp. Rating', 'EPS Rating', 'PP_30d'
+    'Industry Group Rank', 'RS Rating', 'Comp. Rating', 'EPS Rating', 'PP_30d', 'VBO_30d'
 ]
 
 for col in numeric_cols_to_clean:
@@ -311,6 +312,7 @@ st.dataframe(
         "Spon Rating": st.column_config.TextColumn("SPON"),
         "Ind Grp RS": st.column_config.TextColumn("GRP RS"),
         "PP_30d": st.column_config.NumberColumn("PP (30d) 💧", format="%d"),
+        "VBO_30d": st.column_config.NumberColumn("VBO (30d) 💥", format="%d"),
     }
 )
 
