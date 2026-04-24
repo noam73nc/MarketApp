@@ -37,6 +37,12 @@ def validate_data(df):
     if missing:
         raise ValueError(f"Missing absolute critical columns: {', '.join(missing)}")
 
+    if df['Price'].isnull().mean() > 0.05:
+        raise ValueError("Excessive nulls in 'Price' column (> 5%).")
+
+    if (df['Rel_Volume'] == 0).mean() > 0.20:
+        raise ValueError("Over 20% of stocks have EXACTLY 0 RVOL. Upstream volume feed error suspected.")
+
 def is_true_vcp(hist_df):
     if len(hist_df) < 60: 
         return False
@@ -96,7 +102,9 @@ def update_market_data():
     print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 מתחיל משיכת נתונים ועדכון מערכת...")
     
     try:
-        # --- חלק 1: משיכת נתוני בסיס מ-TradingView ---
+        # ==========================================================
+        # 1. משיכת נתוני בסיס מ-TradingView
+        # ==========================================================
         print("📡 מתחבר ל-TradingView...")
         query = (Query()
                  .set_markets('america')
@@ -135,7 +143,9 @@ def update_market_data():
         df_raw['SMA50_Pct'] = np.where(pd.to_numeric(df_raw['SMA50'], errors='coerce') > 0, 
                                       (df_raw['Price'] - df_raw['SMA50']) / df_raw['SMA50'], 0)
 
-        # --- מנוע תבניות בסיסי (Pattern Engine) ---
+        # ==========================================================
+        # 2. מנוע התבניות (Pattern Engine) עם מתמטיקה חסינה
+        # ==========================================================
         def get_patterns(row):
             b = []
             p = pd.to_numeric(row.get('Price', 0), errors='coerce')
@@ -186,7 +196,7 @@ def update_market_data():
 
         df_raw['Pattern_Badges'] = df_raw.apply(get_patterns, axis=1)
 
-        # --- Weinstein Stages ---
+        # 3. Weinstein Stages
         p, ma50, ma200 = df_raw['Price'], df_raw['SMA50'], df_raw['SMA200']
         h52, l52 = df_raw['price_52_week_high'], df_raw['price_52_week_low']
         df_raw['52W_High_Pct'] = np.where(h52 > 0, (p - h52) / h52, -1)
@@ -203,7 +213,9 @@ def update_market_data():
             default='Unknown'
         )
 
-        # --- שילוב קובצי IBD וקבוצות תעשייה מקומיים ---
+        # ==========================================================
+        # 4. שילוב קובצי IBD וקבוצות תעשייה מקומיים
+        # ==========================================================
         print("📁 מחפש ומשלב קבצי IBD ו-Group Ranking מקומיים...")
         df_ibd = pd.DataFrame()
         ibd_p = find_file_robust(DATA_DIR, "IBD.csv")
@@ -246,8 +258,10 @@ def update_market_data():
             icols = ['Symbol', 'RS Rating', 'Comp. Rating', 'EPS Rating', 'Acc/Dis Rating', 'SMR Rating', 
                     'Spon Rating', 'Ind Grp RS', 'Industry Group Rank', 'Rank_Improvement', 'Industry Group Name']
             df_raw = pd.merge(df_raw, df_ibd[[c for c in icols if c in df_ibd.columns]], on='Symbol', how='left')
-            
-        # --- משיכת נתונים משלימים מאקסל (דוחות, קינטיק סלופ ועוד) ---
+
+        # ==========================================================
+        # 5. משיכת נתונים משלימים מאקסל (דוחות, קינטיק סלופ ועוד)
+        # ==========================================================
         print("📄 מושך נתוני דוחות ושיפוע מתוך האקסל המקומי...")
         ex_p = glob.glob(os.path.join(DATA_DIR, "Ultimate_Market_V3f_*.xlsx"))
         if ex_p:
@@ -262,11 +276,17 @@ def update_market_data():
                     if 'Industry Group Name_excel' in df_raw.columns:
                         df_raw['Industry Group Name'] = df_raw['Industry Group Name_excel'].combine_first(df_raw['Industry Group Name'])
                         df_raw.drop(columns=['Industry Group Name_excel'], inplace=True)
-            except Exception as e: print(f"❌ שגיאת אקסל: {e}")    
+            except Exception as e: print(f"❌ שגיאת אקסל: {e}")
             
-        # --- מנוע Action Score דינמי ---
+        # =======================================================
+        # 6. מנוע ציון דינמי (Native Action Score)
+        # =======================================================
         if 'Action_Score' not in df_raw.columns:
-            base_score = pd.to_numeric(df_raw.get('RS Rating', 0), errors='coerce').fillna(0)
+            print("💡 מחשב Action Score דינמי (לא נמצא קובץ אקסל)...")
+            base_score = 0
+            if 'RS Rating' in df_raw.columns:
+                base_score = pd.to_numeric(df_raw['RS Rating'], errors='coerce').fillna(0)
+            
             stage_bonus = np.where(df_raw['Weinstein_Stage'].astype(str).str.contains('Stage 2'), 10, 0)
             pattern_bonus = df_raw['Pattern_Badges'].str.count(r'🚀|🛡️|🤏|📈|🔥|🏀|🏄') * 5
             pattern_bonus = pattern_bonus.fillna(0)
@@ -276,14 +296,14 @@ def update_market_data():
             df_raw['Action_Score'] = df_raw['Action_Score'].round().astype(int)        
 
         # =======================================================
-        # 🧠 מנוע היסטוריה משולב ומוגן: VCP + Pocket Pivots (Batching)
+        # 🧠 7. מנוע היסטוריה משולב ומוגן: PP, VBO + VCP (Batching)
         # =======================================================
-        print("\n🔍 מכין מנוע היסטוריה (חישוב PP ו-VCP)...")
+        print("\n🔍 מכין מנוע היסטוריה (חישוב PP, VBO ו-VCP)...")
         
-        df_raw['PP_30d'] = 0 # אתחול העמודה ב-0 לכולן
+        df_raw['PP_30d'] = 0 
+        df_raw['VBO_30d'] = 0
         df_raw['RS_Num'] = pd.to_numeric(df_raw.get('RS Rating', 0), errors='coerce').fillna(0)
             
-        # סינון המניות הרלוונטיות לבדיקה
         analysis_candidates = df_raw[
             (df_raw['RS_Num'] >= 70) & 
             (df_raw['TV_AvgVol10'] >= 200000)
@@ -302,9 +322,10 @@ def update_market_data():
             
             true_vcp_tickers = []
             pp_results = {}
+            vbo_results = {}
             success_count = 0
             
-            batch_size = 50 # גודל הקבוצה - מונע קריסות של Yahoo
+            batch_size = 50 
             total_batches = (len(analysis_candidates) // batch_size) + 1
             
             for i in range(0, len(analysis_candidates), batch_size):
@@ -313,6 +334,7 @@ def update_market_data():
                 print(f"   📥 מוריד ומעבד קבוצה {current_batch} מתוך {total_batches}...")
                 
                 try:
+                    # שימוש ב-6mo ל-6 חודשים מלאים וקבוצתי (group_by)
                     hist_data = yf.download(batch_tickers, period="6mo", group_by='ticker', auto_adjust=True, progress=False)
                     
                     if hist_data.empty:
@@ -321,35 +343,35 @@ def update_market_data():
                         
                     for ticker in batch_tickers:
                         try:
-                            # 1. חילוץ בטוח של הנתונים למניה הספציפית
                             if len(batch_tickers) == 1:
                                 df_ticker = hist_data.dropna(subset=['Close']).copy()
                             else:
-                                if ticker not in hist_data:
-                                    continue # yfinance החסיר את המניה
+                                if ticker not in hist_data: continue 
                                 df_ticker = hist_data[ticker].dropna(subset=['Close']).copy()
                                 
                             if df_ticker.empty or len(df_ticker) < 50:
                                 continue
 
-                            # 2. חישוב Pocket Pivot
+                            # חישובי בסיס
                             df_ticker['SMA50'] = df_ticker['Close'].rolling(window=50).mean()
                             is_green = df_ticker['Close'] > df_ticker['Open']
                             above_sma50 = df_ticker['Close'] > df_ticker['SMA50']
                             
-                            # שימוש נטיבי ב-Pandas כדי לא לאבד את התאריכים (Index)
+                            # 1. חישוב PP (Pocket Pivot) - שימוש במקסימום של נרות אדומים בלבד
                             down_volume = df_ticker['Volume'].where(df_ticker['Close'] < df_ticker['Open'], 0)
-                            highest_down_vol_10d = down_volume.rolling(window=10).max().shift(1)
+                            pp_threshold = down_volume.rolling(window=10).max().shift(1)
                             
-                            vol_breakout = df_ticker['Volume'] > highest_down_vol_10d
+                            # 2. חישוב VBO (Volume Breakout) - שימוש במקסימום המוחלט מכל הנרות (ירוקים ואדומים)
+                            vbo_threshold = df_ticker['Volume'].rolling(window=10).max().shift(1)
                             
-                            is_pp = is_green & above_sma50 & vol_breakout
-                            pp_count_30d = int(is_pp.rolling(window=30).sum().fillna(0).iloc[-1])
+                            is_pp = is_green & above_sma50 & (df_ticker['Volume'] > pp_threshold)
+                            is_vbo = is_green & above_sma50 & (df_ticker['Volume'] > vbo_threshold)
                             
-                            pp_results[ticker] = pp_count_30d
+                            pp_results[ticker] = int(is_pp.rolling(window=30).sum().fillna(0).iloc[-1])
+                            vbo_results[ticker] = int(is_vbo.rolling(window=30).sum().fillna(0).iloc[-1])
                             success_count += 1
                             
-                            # 3. בדיקת VCP
+                            # 3. חישוב VCP (רק למועמדות המחמירות)
                             if ticker in vcp_strict_list:
                                 if is_true_vcp(df_ticker):
                                     true_vcp_tickers.append(ticker)
@@ -360,11 +382,13 @@ def update_market_data():
                 except Exception as e:
                     print(f"   ❌ שגיאה בהורדת קבוצה {current_batch}: {e}")
                     
-            # --- עדכון הטבלה הראשית ---
-            print(f"\n✅ מנוע היסטוריה סיים! חושבו מדדי PP בהצלחה עבור {success_count} מניות.")
+            print(f"\n✅ מנוע היסטוריה סיים! חושבו מדדי PP/VBO בהצלחה עבור {success_count} מניות.")
             
+            # הצבה לתוך הטבלה הראשית
             if pp_results:
                 df_raw['PP_30d'] = df_raw['Symbol'].map(pp_results).fillna(0).astype(int)
+            if vbo_results:
+                df_raw['VBO_30d'] = df_raw['Symbol'].map(vbo_results).fillna(0).astype(int)
                 
             if true_vcp_tickers:
                 print(f"🎯 בינגו! נמצאו {len(true_vcp_tickers)} מניות True VCP: {true_vcp_tickers}")
